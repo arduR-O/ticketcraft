@@ -1,6 +1,6 @@
 # TicketCraft
 
-TicketCraft is a high-concurrency ticket booking engine and distributed systems simulator modeled after Ticketmaster. The project is designed to simulate flash-sale ticket distributions for major events (e.g., a 132,000 capacity stadium concert) under heavy traffic while maintaining strict transactional guarantees and sub-millisecond query latencies.
+TicketCraft is a high-concurrency ticket booking engine and distributed systems simulator modeled after Ticketmaster. The platform is designed to simulate flash-sale ticket distributions for major events (e.g., a 130,000+ capacity stadium concert) under heavy concurrent load while maintaining strict transactional consistency, zero double-booking, and sub-millisecond query latencies.
 
 ---
 
@@ -19,62 +19,67 @@ This platform is structured as a Java Spring Boot microservices cluster running 
 
 ## ⚡ Core Technical Solutions & Design Decisions
 
-### 1. Database Indexing Blueprint & Concurrency Trade-Offs
-
-When mapping a high-traffic relational database (PostgreSQL), we prioritized B-Tree and GIN indexes over array denormalization on the parent tables:
-
-#### The Trade-Off: Denormalized Arrays vs. Normalized B-Tree Indexes
-Our database normalized structure uses **foreign keys** (`artist_id`, `venue_id`) rather than storing arrays of event IDs directly inside the `artists` table (e.g., `artists.event_ids = [101, 102, 103]`). 
-
-* **Lock Contention**: Denormalized arrays require acquiring a **Write Lock** on the parent `Artist` row every time a new concert is created, creating a severe database bottleneck when multiple admin threads update schedules concurrently.
-* **Referential Integrity**: PostgreSQL cannot enforce foreign key constraints on elements inside an array. Normalized foreign keys ensure the database engine maintains strict referential safety natively.
-* **Latency**: A logarithmic B-Tree lookup on `events(artist_id)` resolves queries in sub-millisecond execution times, matching the read performance of arrays without the write contention.
+### 1. Lock Ordering to Prevent Distributed Deadlocks
+When users reserve multiple seats simultaneously (e.g., Alice requests seats `[104, 105]` while Bob requests `[105, 104]` at the exact same millisecond), acquiring distributed locks in arbitrary orders leads to cyclic wait conditions (deadlocks).
+* **The Solution**: The `booking-service` **sorts the target seat IDs numerically** prior to requesting locks. Enforcing a strict, global lock acquisition order across all threads converts potential deadlocks into predictable, serialized wait sequences.
 
 ```mermaid
-graph TD
-    A[Database Indexes] --> B(Primary Keys: B-Tree)
-    A --> C(Foreign Keys: B-Tree)
-    A --> D(Text Vectors: GIN)
-    A --> E(Geospatial / Search: B-Tree)
+sequenceDiagram
+    autonumber
+    actor Alice
+    actor Bob
+    participant BookingService as booking-service
+    participant Redis as Redis (Redisson)
 
-    B --> B1[artists.id, events.id, seats.id]
-    C --> C1[events.artist_id, events.venue_id, seats.event_id]
-    D --> D1[events.search_vector]
-    E --> E1[venues.latitude, venues.longitude, seats.event_id, seats.status]
+    Note over Alice, Bob: alice tries [105, 104] | bob tries [104, 105]
+    BookingService->>BookingService: Sort Alice's list: [104, 105]
+    BookingService->>BookingService: Sort Bob's list: [104, 105]
+    
+    par Parallel Lock Attempts on Seat 104
+        BookingService->>Redis: Alice attempts lock:seat:104
+        BookingService->>Redis: Bob attempts lock:seat:104
+    end
+    
+    alt Alice Wins Lock 104
+        Redis-->>BookingService: Alice gets lock:seat:104
+        Redis-->>BookingService: Bob blocks on lock:seat:104 (Waits)
+        BookingService->>Redis: Alice attempts lock:seat:105
+        Redis-->>BookingService: Alice gets lock:seat:105
+        Note over BookingService, Redis: Alice completes reservation & releases locks
+        BookingService->>Redis: Bob resumes & attempts lock:seat:104
+    end
 ```
 
-#### Our Index Design:
-| Table | Column(s) | Index Type | Query Target |
-| :--- | :--- | :--- | :--- |
-| `events` | `search_vector` | **GIN (Generalized Inverted Index)** | Full-Text search queries (e.g. typing partial artist/venue names). |
-| `events` | `artist_id` | **B-Tree** | Look up concerts by specific artists. |
-| `events` | `venue_id` | **B-Tree** | Look up events scheduled at specific stadiums. |
-| `events` | `date` | **B-Tree** | Retrieve upcoming events sorted chronologically. |
-| `events` | `(artist_id, date)` | **Composite B-Tree** | Retrieve upcoming events for a specific artist. |
-| `seats` | `(event_id, status)` | **Composite B-Tree** | Instant $O(1)$ lookups for active, purchaseable (`'AVAILABLE'`) seats. |
-| `venues` | `(latitude, longitude)` | **B-Tree** | Supports fast geographic bounding-box checks for "Events Near Me". |
+---
+
+### 2. Waitlist Position Update Scalability (Decoupled SSE Ranks)
+Broadcasting queue position updates to 100,000 waiting users every time *one* user is promoted creates an $O(N \cdot M)$ network congestion pattern (where $N$ is waitlist size and $M$ is promotion rate), saturating network interfaces (NICs).
+* **The Solution**: Instead of event-triggered broadcasts, we implement a **decoupled interval-based push**. Each open SSE connection in the `queue-service` runs a task **every 5 seconds** that performs a fast $O(\log N)$ `ZRANK` check against the Redis Sorted Set (`ZSET`) waitlist. This flat lines network bandwidth and scales predictably with waitlist size.
 
 ---
 
-### 2. Geospatial Architecture: Flat Lat/Lon vs. PostGIS
-To show users events near their current location, we mapped coordinates (`latitude`, `longitude` as `Double`) to our `venues` table.
-* **Haversine Formula**: We calculate distance using the Haversine formula directly in SQL native queries combined with a bounding-box filter.
-* **The Decision**: We opted for standard `Double` fields over the heavy PostGIS spatial extension to maintain a **portable local footprint** (enabling standard H2 in-memory databases to execute tests without third-party C-bindings or custom Docker image requirements).
+### 3. Session Security Split: CSRF Block vs. Stateful Revocation
+To secure microservice communications statelessly without sacrificing the ability to revoke user sessions, we split token lifetimes and storage:
+* **JS Memory (Access Token)**: The short-lived `accessToken` is stored in JS memory (React state) and passed via the `Authorization: Bearer` header. This completely blocks **CSRF (Cross-Site Request Forgery)** since malicious sites cannot access the JS memory space.
+* **HttpOnly Cookies (Refresh Token)**: The long-lived `refreshToken` is stored in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie. When a user closes or refreshes their browser tab (destroying the JS memory state), the application calls `POST /api/auth/refresh`. The browser automatically transmits the cookie, which the Gateway validates against a Redis whitelist to issue a new access token.
 
 ---
 
-### 3. Asynchronous & Multi-Seat Reservation Security
-* **Deadlock Prevention**: Before holding any Redis distributed locks via Redisson, the system **sorts the requested seat IDs numerically**. This ensures that multiple concurrent threads trying to book overlapping seats acquire locks in the exact same order, preventing cyclic wait conditions (deadlocks).
-* **Virtual Thread Scalability**: By enabling virtual threads (`spring.threads.virtual.enabled: true`), Spring Boot Tomcat unmounts Carrier Threads from OS threads the instant a blocking DB transaction begins. This allows the Catalog and Booking services to support thousands of concurrent bookings without running out of operating system threads.
+### 4. Database Connection Multiplexing with PgBouncer
+Under flash-sale surges, Tomcat's thread-pool can easily spawn hundreds of threads. Allocating a physical PostgreSQL connection to every thread quickly hits the OS fork limit and causes severe connection context-switching bottlenecks in PostgreSQL.
+* **The Solution**: We configure **PgBouncer transaction-level pooling**. Application connections are decoupled from physical database connections. PgBouncer multiplexes thousands of active application connections over a compact pool of 50 physical PostgreSQL connections, releasing database sockets the microsecond a transaction commits.
 
 ---
 
-### 4. gRPC vs. REST for Internal Microservices
-Communication between the `booking-service` and the `catalog-service` is handled over **gRPC (HTTP/2 + Protocol Buffers)** instead of REST (HTTP/1.1 + JSON):
-* **CPU Efficiency**: Protobuf encodes data as a compressed binary stream, eliminating the heavy string parsing and reflection overhead associated with JSON.
-* **TCP Multiplexing**: HTTP/2 multiplexes thousands of requests over a single open TCP connection, eliminating the TCP handshake overhead and socket-limit bottlenecks of HTTP/1.1.
-* **Precision Monies**: Monies and seat prices are mapped as a **`string`** in the `.proto` schema instead of `double` or `float` fields. This protects the billing pipeline from binary floating-point representation rounding errors (preserving strict `BigDecimal` precision over network jumps).
-* **Java EE Workaround**: Addressed legacy `@javax.annotation.Generated` dependencies in gRPC generated compiler stubs under Java 21 by adding `javax.annotation-api` directly to the classpath.
+### 5. Asynchronous Payment Offloading with DLQ Recovery
+Processing external payment API calls (e.g., Stripe) takes 1–3 seconds. Holding database connections and locks open for this duration would exhaust our pool and crash the booking engine under load.
+* **The Solution**: The booking engine writes a `PENDING` transaction to the database, releases all database locks/connections, and publishes a `BookingCreatedEvent` to Apache Kafka. The payment service consumes the event asynchronously, calls the payment API, and broadcasts a `PaymentProcessedEvent`. If a payment call fails due to transient network errors, a **Dead Letter Queue (DLQ)** with exponential backoff handles retries, ensuring eventual consistency.
+
+---
+
+### 6. Double Precision vs. Decimal String Serialization in gRPC
+gRPC services communicate over HTTP/2 using Protocol Buffers. However, Protobuf lacks a native decimal type, and mapping currency to `double` or `float` fields introduces binary representation rounding errors (IEEE 754 precision issues).
+* **The Solution**: Prices and money values are explicitly transmitted as a **`string`** in `.proto` files (e.g., `"150.00"`). This protects the transaction stream from rounding errors during serialization/deserialization. The receiving client safe-casts the string directly back into a Java `BigDecimal`.
 
 ---
 
