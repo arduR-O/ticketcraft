@@ -72,6 +72,9 @@ class CatalogRepositoryTests {
         Seat seat1 = Seat.builder()
                 .seatNumber("A-101")
                 .rowNumber("Row-10")
+                .section("Section 101")
+                .xCoordinate(10)
+                .yCoordinate(20)
                 .category(SeatCategory.VIP)
                 .status(SeatStatus.AVAILABLE)
                 .price(new BigDecimal("150.00"))
@@ -81,6 +84,9 @@ class CatalogRepositoryTests {
         Seat seat2 = Seat.builder()
                 .seatNumber("A-102")
                 .rowNumber("Row-10")
+                .section("Section 101")
+                .xCoordinate(30)
+                .yCoordinate(20)
                 .category(SeatCategory.STANDARD)
                 .status(SeatStatus.AVAILABLE)
                 .price(new BigDecimal("80.00"))
@@ -93,5 +99,8 @@ class CatalogRepositoryTests {
         List<Seat> seats = seatRepository.findByEventId(savedEvent.getId());
         assertThat(seats).hasSize(2);
         assertThat(seats).extracting(Seat::getSeatNumber).containsExactlyInAnyOrder("A-101", "A-102");
+        assertThat(seats).extracting(Seat::getSection).containsOnly("Section 101");
+        assertThat(seats).extracting(Seat::getXCoordinate).containsExactlyInAnyOrder(10, 30);
+        assertThat(seats).extracting(Seat::getYCoordinate).containsOnly(20);
     }
 }

@@ -23,6 +23,15 @@ public class Seat {
     @Column(name = "row_number", nullable = false)
     private String rowNumber;
 
+    @Column(nullable = false)
+    private String section;
+
+    @Column(name = "x_coordinate")
+    private Integer xCoordinate;
+
+    @Column(name = "y_coordinate")
+    private Integer yCoordinate;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SeatCategory category;

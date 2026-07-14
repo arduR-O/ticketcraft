@@ -42,6 +42,9 @@ class SeatServiceGrpcImplTests {
                 .category(SeatCategory.VIP)
                 .status(SeatStatus.AVAILABLE)
                 .price(new BigDecimal("100.00"))
+                .section("VIP East")
+                .xCoordinate(100)
+                .yCoordinate(150)
                 .event(event)
                 .build();
 
@@ -65,6 +68,9 @@ class SeatServiceGrpcImplTests {
         assertThat(response.getSeatsList()).hasSize(1);
         assertThat(response.getSeats(0).getSeatNumber()).isEqualTo("A-1");
         assertThat(response.getSeats(0).getStatus()).isEqualTo("AVAILABLE");
+        assertThat(response.getSeats(0).getSection()).isEqualTo("VIP East");
+        assertThat(response.getSeats(0).getXCoordinate()).isEqualTo(100);
+        assertThat(response.getSeats(0).getYCoordinate()).isEqualTo(150);
     }
 
     @Test
@@ -78,6 +84,9 @@ class SeatServiceGrpcImplTests {
                 .category(SeatCategory.VIP)
                 .status(SeatStatus.SOLD)
                 .price(new BigDecimal("100.00"))
+                .section("VIP East")
+                .xCoordinate(100)
+                .yCoordinate(150)
                 .event(event)
                 .build();
 

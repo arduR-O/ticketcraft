@@ -47,6 +47,9 @@ public class SeatServiceGrpcImpl extends SeatServiceGrpc.SeatServiceImplBase {
                     .setStatus(seat.getStatus().name())
                     .setPrice(seat.getPrice().toString()) // Transfer BigDecimal as string to avoid rounding errors
                     .setCategory(seat.getCategory().name())
+                    .setSection(seat.getSection())
+                    .setXCoordinate(seat.getXCoordinate() != null ? seat.getXCoordinate() : 0)
+                    .setYCoordinate(seat.getYCoordinate() != null ? seat.getYCoordinate() : 0)
                     .build()
             ).collect(Collectors.toList());
 

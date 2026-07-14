@@ -27,4 +27,7 @@ message SeatInfo {
   string status = 4;
   string price = 5; // Transmitting BigDecimal as String to prevent rounding errors
   string category = 6;
+  string section = 7;
+  int32 x_coordinate = 8;
+  int32 y_coordinate = 9;
 }
