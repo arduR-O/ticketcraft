@@ -8,6 +8,7 @@ class EurekaServerApplicationTests {
 
     @Test
     void contextLoads() {
-        // Verification that the Spring Application Context starts cleanly
+        // Verification that the Spring Application Context
+        // starts cleanly
     }
 }

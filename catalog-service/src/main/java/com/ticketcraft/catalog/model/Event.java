@@ -1,8 +1,8 @@
 package com.ticketcraft.catalog.model;
 
 import jakarta.persistence.*;
-import lombok.*;
 import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Table(name = "events")
@@ -35,7 +35,9 @@ public class Event {
     private Venue venue;
 
     // PostgreSQL full-text search column map.
-    // Marked read-only (insertable/updatable = false) since the search tsvector is automatically updated
+    // Marked read-only (insertable/updatable = false) since
+    // the search tsvector is automatically
+    // updated
     // by database triggers.
     @Column(name = "search_vector", columnDefinition = "tsvector", insertable = false, updatable = false)
     private String searchVector;

@@ -1,8 +1,8 @@
 package com.ticketcraft.catalog.model;
 
 import jakarta.persistence.*;
-import lombok.*;
 import java.math.BigDecimal;
+import lombok.*;
 
 @Entity
 @Table(name = "seats")

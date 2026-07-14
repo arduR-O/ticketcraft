@@ -10,6 +10,7 @@ class QueueServiceApplicationTests {
 
     @Test
     void contextLoads() {
-        // Verification that the Spring Application Context starts cleanly for the Queue Service
+        // Verification that the Spring Application Context
+        // starts cleanly for the Queue Service
     }
 }

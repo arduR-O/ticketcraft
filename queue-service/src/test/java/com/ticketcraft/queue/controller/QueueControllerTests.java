@@ -15,10 +15,8 @@ class QueueControllerTests {
 
     @Test
     void healthCheck_shouldReturnHealthyStatus() {
-        webTestClient.get()
-                .uri("/api/queue/health")
-                .exchange()
-                .expectStatus().isOk()
+        webTestClient.get().uri("/api/queue/health")
+                .exchange().expectStatus().isOk()
                 .expectBody(String.class)
                 .isEqualTo("Queue Service is healthy");
     }
