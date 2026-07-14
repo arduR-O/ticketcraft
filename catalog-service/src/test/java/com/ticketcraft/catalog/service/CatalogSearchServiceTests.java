@@ -70,4 +70,14 @@ class CatalogSearchServiceTests {
     verify(eventRepository, times(1)).searchEvents("Queen", pageable);
     verify(eventRepository, never()).findAll(any(Pageable.class));
   }
+
+  @Test
+  void searchEvents_withMultiWordQuery_shouldFormatToOrSearch() {
+    when(eventRepository.searchEvents("Queen | Wembley", pageable)).thenReturn(List.of(testEvent));
+
+    List<Event> results = catalogSearchService.searchEvents("Queen & Wembley!", pageable);
+
+    assertThat(results).hasSize(1);
+    verify(eventRepository, times(1)).searchEvents("Queen | Wembley", pageable);
+  }
 }

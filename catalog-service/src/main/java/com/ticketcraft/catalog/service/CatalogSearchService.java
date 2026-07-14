@@ -22,7 +22,13 @@ public class CatalogSearchService {
     if (query == null || query.trim().isEmpty()) {
       return eventRepository.findAll(pageable).getContent();
     }
-    return eventRepository.searchEvents(query, pageable);
+    String formattedQuery =
+        query.replaceAll("[^a-zA-Z0-9\\s]", "").trim().replaceAll("\\s+", " | ");
+
+    if (formattedQuery.isEmpty()) {
+      return eventRepository.findAll(pageable).getContent();
+    }
+    return eventRepository.searchEvents(formattedQuery, pageable);
   }
 
   public List<Seat> getSeatsForEvent(Long eventId) {
