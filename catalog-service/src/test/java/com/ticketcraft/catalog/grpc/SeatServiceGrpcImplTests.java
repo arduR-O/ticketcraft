@@ -2,6 +2,8 @@ package com.ticketcraft.catalog.grpc;
 
 import com.ticketcraft.catalog.model.Event;
 import com.ticketcraft.catalog.model.Seat;
+import com.ticketcraft.catalog.model.SeatCategory;
+import com.ticketcraft.catalog.model.SeatStatus;
 import com.ticketcraft.catalog.repository.SeatRepository;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
@@ -37,8 +39,8 @@ class SeatServiceGrpcImplTests {
                 .id(101L)
                 .seatNumber("A-1")
                 .rowNumber("Row-1")
-                .category("VIP")
-                .status("AVAILABLE")
+                .category(SeatCategory.VIP)
+                .status(SeatStatus.AVAILABLE)
                 .price(new BigDecimal("100.00"))
                 .event(event)
                 .build();
@@ -73,8 +75,8 @@ class SeatServiceGrpcImplTests {
                 .id(101L)
                 .seatNumber("A-1")
                 .rowNumber("Row-1")
-                .category("VIP")
-                .status("SOLD")
+                .category(SeatCategory.VIP)
+                .status(SeatStatus.SOLD)
                 .price(new BigDecimal("100.00"))
                 .event(event)
                 .build();

@@ -23,11 +23,13 @@ public class Seat {
     @Column(name = "row_number", nullable = false)
     private String rowNumber;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String category; // VIP, STANDARD
+    private SeatCategory category;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // AVAILABLE, RESERVED, SOLD
+    private SeatStatus status;
 
     @Column(nullable = false)
     private BigDecimal price;

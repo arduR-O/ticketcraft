@@ -1,6 +1,7 @@
 package com.ticketcraft.catalog.grpc;
 
 import com.ticketcraft.catalog.model.Seat;
+import com.ticketcraft.catalog.model.SeatStatus;
 import com.ticketcraft.catalog.repository.SeatRepository;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class SeatServiceGrpcImpl extends SeatServiceGrpc.SeatServiceImplBase {
             // - Are all seats currently "AVAILABLE"?
             boolean allFound = seats.size() == requestedSeatIds.size();
             boolean allMatchEvent = seats.stream().allMatch(seat -> seat.getEvent().getId() == eventId);
-            boolean allAvailable = seats.stream().allMatch(seat -> "AVAILABLE".equalsIgnoreCase(seat.getStatus()));
+            boolean allAvailable = seats.stream().allMatch(seat -> seat.getStatus() == SeatStatus.AVAILABLE);
 
             boolean allAvailableStatus = allFound && allMatchEvent && allAvailable;
 
@@ -43,9 +44,9 @@ public class SeatServiceGrpcImpl extends SeatServiceGrpc.SeatServiceImplBase {
                     .setSeatId(seat.getId())
                     .setSeatNumber(seat.getSeatNumber())
                     .setRowNumber(seat.getRowNumber())
-                    .setStatus(seat.getStatus())
+                    .setStatus(seat.getStatus().name())
                     .setPrice(seat.getPrice().toString()) // Transfer BigDecimal as string to avoid rounding errors
-                    .setCategory(seat.getCategory())
+                    .setCategory(seat.getCategory().name())
                     .build()
             ).collect(Collectors.toList());
 

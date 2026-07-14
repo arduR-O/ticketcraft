@@ -3,6 +3,8 @@ package com.ticketcraft.catalog.repository;
 import com.ticketcraft.catalog.model.Artist;
 import com.ticketcraft.catalog.model.Event;
 import com.ticketcraft.catalog.model.Seat;
+import com.ticketcraft.catalog.model.SeatCategory;
+import com.ticketcraft.catalog.model.SeatStatus;
 import com.ticketcraft.catalog.model.Venue;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,8 +72,8 @@ class CatalogRepositoryTests {
         Seat seat1 = Seat.builder()
                 .seatNumber("A-101")
                 .rowNumber("Row-10")
-                .category("VIP")
-                .status("AVAILABLE")
+                .category(SeatCategory.VIP)
+                .status(SeatStatus.AVAILABLE)
                 .price(new BigDecimal("150.00"))
                 .event(savedEvent)
                 .build();
@@ -79,8 +81,8 @@ class CatalogRepositoryTests {
         Seat seat2 = Seat.builder()
                 .seatNumber("A-102")
                 .rowNumber("Row-10")
-                .category("STANDARD")
-                .status("AVAILABLE")
+                .category(SeatCategory.STANDARD)
+                .status(SeatStatus.AVAILABLE)
                 .price(new BigDecimal("80.00"))
                 .event(savedEvent)
                 .build();
