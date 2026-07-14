@@ -10,14 +10,17 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @ActiveProfiles("test")
 class QueueControllerTests {
 
-    @Autowired
-    private WebTestClient webTestClient;
+  @Autowired private WebTestClient webTestClient;
 
-    @Test
-    void healthCheck_shouldReturnHealthyStatus() {
-        webTestClient.get().uri("/api/queue/health")
-                .exchange().expectStatus().isOk()
-                .expectBody(String.class)
-                .isEqualTo("Queue Service is healthy");
-    }
+  @Test
+  void healthCheck_shouldReturnHealthyStatus() {
+    webTestClient
+        .get()
+        .uri("/api/queue/health")
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody(String.class)
+        .isEqualTo("Queue Service is healthy");
+  }
 }

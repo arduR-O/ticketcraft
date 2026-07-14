@@ -127,9 +127,11 @@
                 <version>2.43.0</version>
                 <configuration>
                     <java>
-                        <eclipse>
-                            <file>${maven.multiModuleProjectDirectory}/eclipse-formatter.xml</file>
-                        </eclipse>
+                        <googleJavaFormat>
+                            <version>1.17.0</version>
+                            <style>GOOGLE</style>
+                            <reflowLongStrings>true</reflowLongStrings>
+                        </googleJavaFormat>
                         <removeUnusedImports/>
                         <importOrder/>
                     </java>

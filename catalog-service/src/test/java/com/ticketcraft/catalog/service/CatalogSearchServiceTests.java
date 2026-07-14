@@ -17,23 +17,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class CatalogSearchServiceTests {
 
-    @Mock
-    private EventRepository eventRepository;
+  @Mock private EventRepository eventRepository;
 
-    @Mock
-    private SeatRepository seatRepository;
+  @Mock private SeatRepository seatRepository;
 
-    @InjectMocks
-    private CatalogSearchService catalogSearchService;
+  @InjectMocks private CatalogSearchService catalogSearchService;
 
-    private Event testEvent;
+  private Event testEvent;
 
-    @BeforeEach
-    void setUp() {
-        testEvent = Event.builder().id(1L)
-                .title("Queen Live at Wembley")
-                .description("Magic Tour").build();
-    }
+  @BeforeEach
+  void setUp() {
+    testEvent =
+        Event.builder().id(1L).title("Queen Live at Wembley").description("Magic Tour").build();
+  }
 
   @Test
   void searchEvents_withEmptyQuery_shouldReturnAllEvents() {

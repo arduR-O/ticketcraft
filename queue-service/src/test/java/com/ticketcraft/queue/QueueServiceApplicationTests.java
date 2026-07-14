@@ -8,9 +8,9 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 class QueueServiceApplicationTests {
 
-    @Test
-    void contextLoads() {
-        // Verification that the Spring Application Context
-        // starts cleanly for the Queue Service
-    }
+  @Test
+  void contextLoads() {
+    // Verification that the Spring Application Context
+    // starts cleanly for the Queue Service
+  }
 }

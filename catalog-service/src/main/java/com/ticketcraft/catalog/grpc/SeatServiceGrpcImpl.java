@@ -13,88 +13,68 @@ import net.devh.boot.grpc.server.service.GrpcService;
 @GrpcService
 @RequiredArgsConstructor
 @Slf4j
-public class SeatServiceGrpcImpl
-        extends
-            SeatServiceGrpc.SeatServiceImplBase {
+public class SeatServiceGrpcImpl extends SeatServiceGrpc.SeatServiceImplBase {
 
-    private final SeatRepository seatRepository;
+  private final SeatRepository seatRepository;
 
-    @Override
-    public void checkSeats(SeatCheckRequest request,
-            StreamObserver<SeatCheckResponse> responseObserver) {
+  @Override
+  public void checkSeats(
+      SeatCheckRequest request, StreamObserver<SeatCheckResponse> responseObserver) {
 
-        List<Long> requestedSeatIds = request
-                .getSeatIdsList();
-        long eventId = request.getEventId();
+    List<Long> requestedSeatIds = request.getSeatIdsList();
+    long eventId = request.getEventId();
 
-        log.info(
-                "gRPC Request - Checking seats: {} and event: {}",
-                requestedSeatIds, eventId);
+    log.info("gRPC Request - Checking seats: {} and event: {}", requestedSeatIds, eventId);
 
-        try {
-            // 1. Fetch seats from database
-            List<Seat> seats = seatRepository
-                    .findAllById(requestedSeatIds);
+    try {
+      // 1. Fetch seats from database
+      List<Seat> seats = seatRepository.findAllById(requestedSeatIds);
 
-            // 2. Validate seat matching criteria:
-            // - Did we find all the requested seats?
-            // - Do all seats belong to the requested event?
-            // - Are all seats currently "AVAILABLE"?
-            boolean allFound = seats
-                    .size() == requestedSeatIds.size();
-            boolean allMatchEvent = seats.stream()
-                    .allMatch(seat -> seat.getEvent()
-                            .getId() == eventId);
-            boolean allAvailable = seats.stream()
-                    .allMatch(seat -> seat
-                            .getStatus() == SeatStatus.AVAILABLE);
+      // 2. Validate seat matching criteria:
+      // - Did we find all the requested seats?
+      // - Do all seats belong to the requested event?
+      // - Are all seats currently "AVAILABLE"?
+      boolean allFound = seats.size() == requestedSeatIds.size();
+      boolean allMatchEvent = seats.stream().allMatch(seat -> seat.getEvent().getId() == eventId);
+      boolean allAvailable =
+          seats.stream().allMatch(seat -> seat.getStatus() == SeatStatus.AVAILABLE);
 
-            boolean allAvailableStatus = allFound
-                    && allMatchEvent && allAvailable;
+      boolean allAvailableStatus = allFound && allMatchEvent && allAvailable;
 
-            // 3. Map to protobuf SeatInfo list
-            List<SeatInfo> seatInfoList = seats.stream()
-                    .map(seat -> SeatInfo.newBuilder()
-                            .setSeatId(seat.getId())
-                            .setSeatNumber(
-                                    seat.getSeatNumber())
-                            .setRowNumber(
-                                    seat.getRowNumber())
-                            .setStatus(
-                                    seat.getStatus().name())
-                            .setPrice(seat.getPrice()
-                                    .toString())
-                            .setCategory(seat.getCategory()
-                                    .name())
-                            .setSection(seat.getSection())
-                            .setXCoordinate(seat
-                                    .getXCoordinate() != null
-                                            ? seat.getXCoordinate()
-                                            : 0)
-                            .setYCoordinate(seat
-                                    .getYCoordinate() != null
-                                            ? seat.getYCoordinate()
-                                            : 0)
-                            .build())
-                    .collect(Collectors.toList());
+      // 3. Map to protobuf SeatInfo list
+      List<SeatInfo> seatInfoList =
+          seats.stream()
+              .map(
+                  seat ->
+                      SeatInfo.newBuilder()
+                          .setSeatId(seat.getId())
+                          .setSeatNumber(seat.getSeatNumber())
+                          .setRowNumber(seat.getRowNumber())
+                          .setStatus(seat.getStatus().name())
+                          .setPrice(seat.getPrice().toString())
+                          .setCategory(seat.getCategory().name())
+                          .setSection(seat.getSection())
+                          .setXCoordinate(seat.getXCoordinate() != null ? seat.getXCoordinate() : 0)
+                          .setYCoordinate(seat.getYCoordinate() != null ? seat.getYCoordinate() : 0)
+                          .build())
+              .collect(Collectors.toList());
 
-            // 4. Send response
-            SeatCheckResponse response = SeatCheckResponse
-                    .newBuilder()
-                    .setAllAvailable(allAvailableStatus)
-                    .addAllSeats(seatInfoList).build();
+      // 4. Send response
+      SeatCheckResponse response =
+          SeatCheckResponse.newBuilder()
+              .setAllAvailable(allAvailableStatus)
+              .addAllSeats(seatInfoList)
+              .build();
 
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
+      responseObserver.onNext(response);
+      responseObserver.onCompleted();
 
-        } catch (Exception e) {
-            log.error("Failed to execute gRPC seat check",
-                    e);
-            responseObserver.onError(io.grpc.Status.INTERNAL
-                    .withDescription(
-                            "Internal error checking seats: "
-                                    + e.getMessage())
-                    .asRuntimeException());
-        }
+    } catch (Exception e) {
+      log.error("Failed to execute gRPC seat check", e);
+      responseObserver.onError(
+          io.grpc.Status.INTERNAL
+              .withDescription("Internal error checking seats: " + e.getMessage())
+              .asRuntimeException());
     }
+  }
 }

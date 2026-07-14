@@ -19,27 +19,23 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 class CatalogControllerTests {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @MockBean
-    private CatalogSearchService catalogSearchService;
+  @MockBean private CatalogSearchService catalogSearchService;
 
-    @Test
-    void searchEvents_shouldReturnEvents()
-            throws Exception {
-        Event event = Event.builder().id(1L)
-                .title("Queen Live at Wembley").build();
+  @Test
+  void searchEvents_shouldReturnEvents() throws Exception {
+    Event event = Event.builder().id(1L).title("Queen Live at Wembley").build();
 
-        when(catalogSearchService.searchEvents("Queen"))
-                .thenReturn(List.of(event));
+    when(catalogSearchService.searchEvents("Queen")).thenReturn(List.of(event));
 
-        mockMvc.perform(get("/api/events/search")
+    mockMvc
+        .perform(
+            get("/api/events/search")
                 .param("query", "Queen")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].title")
-                        .value("Queen Live at Wembley"));
-    }
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(1))
+        .andExpect(jsonPath("$[0].title").value("Queen Live at Wembley"));
+  }
 }

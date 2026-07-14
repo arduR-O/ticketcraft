@@ -14,22 +14,19 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class CatalogSearchService {
 
-    private final EventRepository eventRepository;
-    private final SeatRepository seatRepository;
+  private final EventRepository eventRepository;
+  private final SeatRepository seatRepository;
 
-    /**
-     * Search events using PostgreSQL native full-text
-     * search against 'search_vector'.
-     */
-    public List<Event> searchEvents(String query) {
-        if (query == null || query.trim().isEmpty()) {
-            return eventRepository.findAll();
-        }
-        return eventRepository.searchEvents(query);
+  /** Search events using PostgreSQL native full-text search against 'search_vector'. */
+  public List<Event> searchEvents(String query) {
+    if (query == null || query.trim().isEmpty()) {
+      return eventRepository.findAll();
     }
+    return eventRepository.searchEvents(query);
+  }
 
-    /** Get all seats for a specific event. */
-    public List<Seat> getSeatsForEvent(Long eventId) {
-        return seatRepository.findByEventId(eventId);
-    }
+  /** Get all seats for a specific event. */
+  public List<Seat> getSeatsForEvent(Long eventId) {
+    return seatRepository.findByEventId(eventId);
+  }
 }

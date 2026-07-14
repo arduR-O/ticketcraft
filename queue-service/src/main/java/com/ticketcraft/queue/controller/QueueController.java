@@ -9,8 +9,8 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/queue")
 public class QueueController {
 
-    @GetMapping("/health")
-    public Mono<String> healthCheck() {
-        return Mono.just("Queue Service is healthy");
-    }
+  @GetMapping("/health")
+  public Mono<String> healthCheck() {
+    return Mono.just("Queue Service is healthy");
+  }
 }

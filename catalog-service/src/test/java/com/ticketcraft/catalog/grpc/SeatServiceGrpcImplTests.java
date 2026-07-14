@@ -21,93 +21,87 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class SeatServiceGrpcImplTests {
 
-    @Mock
-    private SeatRepository seatRepository;
+  @Mock private SeatRepository seatRepository;
 
-    @Mock
-    private StreamObserver<SeatCheckResponse> responseObserver;
+  @Mock private StreamObserver<SeatCheckResponse> responseObserver;
 
-    @InjectMocks
-    private SeatServiceGrpcImpl seatServiceGrpc;
+  @InjectMocks private SeatServiceGrpcImpl seatServiceGrpc;
 
-    @Test
-    void checkSeats_whenAllSeatsAvailable_shouldReturnTrue() {
-        // Arrange
-        Event event = Event.builder().id(1L).build();
-        Seat seat1 = Seat.builder().id(101L)
-                .seatNumber("A-1").rowNumber("Row-1")
-                .category(SeatCategory.VIP)
-                .status(SeatStatus.AVAILABLE)
-                .price(new BigDecimal("100.00"))
-                .section("VIP East").xCoordinate(100)
-                .yCoordinate(150).event(event).build();
+  @Test
+  void checkSeats_whenAllSeatsAvailable_shouldReturnTrue() {
+    // Arrange
+    Event event = Event.builder().id(1L).build();
+    Seat seat1 =
+        Seat.builder()
+            .id(101L)
+            .seatNumber("A-1")
+            .rowNumber("Row-1")
+            .category(SeatCategory.VIP)
+            .status(SeatStatus.AVAILABLE)
+            .price(new BigDecimal("100.00"))
+            .section("VIP East")
+            .xCoordinate(100)
+            .yCoordinate(150)
+            .event(event)
+            .build();
 
-        when(seatRepository.findAllById(List.of(101L)))
-                .thenReturn(List.of(seat1));
+    when(seatRepository.findAllById(List.of(101L))).thenReturn(List.of(seat1));
 
-        SeatCheckRequest request = SeatCheckRequest
-                .newBuilder().addSeatIds(101L)
-                .setEventId(1L).build();
+    SeatCheckRequest request =
+        SeatCheckRequest.newBuilder().addSeatIds(101L).setEventId(1L).build();
 
-        // Act
-        seatServiceGrpc.checkSeats(request,
-                responseObserver);
+    // Act
+    seatServiceGrpc.checkSeats(request, responseObserver);
 
-        // Assert
-        ArgumentCaptor<SeatCheckResponse> responseCaptor = ArgumentCaptor
-                .forClass(SeatCheckResponse.class);
-        verify(responseObserver, times(1))
-                .onNext(responseCaptor.capture());
-        verify(responseObserver, times(1)).onCompleted();
+    // Assert
+    ArgumentCaptor<SeatCheckResponse> responseCaptor =
+        ArgumentCaptor.forClass(SeatCheckResponse.class);
+    verify(responseObserver, times(1)).onNext(responseCaptor.capture());
+    verify(responseObserver, times(1)).onCompleted();
 
-        SeatCheckResponse response = responseCaptor
-                .getValue();
-        assertThat(response.getAllAvailable()).isTrue();
-        assertThat(response.getSeatsList()).hasSize(1);
-        assertThat(response.getSeats(0).getSeatNumber())
-                .isEqualTo("A-1");
-        assertThat(response.getSeats(0).getStatus())
-                .isEqualTo("AVAILABLE");
-        assertThat(response.getSeats(0).getSection())
-                .isEqualTo("VIP East");
-        assertThat(response.getSeats(0).getXCoordinate())
-                .isEqualTo(100);
-        assertThat(response.getSeats(0).getYCoordinate())
-                .isEqualTo(150);
-    }
+    SeatCheckResponse response = responseCaptor.getValue();
+    assertThat(response.getAllAvailable()).isTrue();
+    assertThat(response.getSeatsList()).hasSize(1);
+    assertThat(response.getSeats(0).getSeatNumber()).isEqualTo("A-1");
+    assertThat(response.getSeats(0).getStatus()).isEqualTo("AVAILABLE");
+    assertThat(response.getSeats(0).getSection()).isEqualTo("VIP East");
+    assertThat(response.getSeats(0).getXCoordinate()).isEqualTo(100);
+    assertThat(response.getSeats(0).getYCoordinate()).isEqualTo(150);
+  }
 
-    @Test
-    void checkSeats_whenASeatIsSold_shouldReturnFalse() {
-        // Arrange
-        Event event = Event.builder().id(1L).build();
-        Seat seat1 = Seat.builder().id(101L)
-                .seatNumber("A-1").rowNumber("Row-1")
-                .category(SeatCategory.VIP)
-                .status(SeatStatus.SOLD)
-                .price(new BigDecimal("100.00"))
-                .section("VIP East").xCoordinate(100)
-                .yCoordinate(150).event(event).build();
+  @Test
+  void checkSeats_whenASeatIsSold_shouldReturnFalse() {
+    // Arrange
+    Event event = Event.builder().id(1L).build();
+    Seat seat1 =
+        Seat.builder()
+            .id(101L)
+            .seatNumber("A-1")
+            .rowNumber("Row-1")
+            .category(SeatCategory.VIP)
+            .status(SeatStatus.SOLD)
+            .price(new BigDecimal("100.00"))
+            .section("VIP East")
+            .xCoordinate(100)
+            .yCoordinate(150)
+            .event(event)
+            .build();
 
-        when(seatRepository.findAllById(List.of(101L)))
-                .thenReturn(List.of(seat1));
+    when(seatRepository.findAllById(List.of(101L))).thenReturn(List.of(seat1));
 
-        SeatCheckRequest request = SeatCheckRequest
-                .newBuilder().addSeatIds(101L)
-                .setEventId(1L).build();
+    SeatCheckRequest request =
+        SeatCheckRequest.newBuilder().addSeatIds(101L).setEventId(1L).build();
 
-        // Act
-        seatServiceGrpc.checkSeats(request,
-                responseObserver);
+    // Act
+    seatServiceGrpc.checkSeats(request, responseObserver);
 
-        // Assert
-        ArgumentCaptor<SeatCheckResponse> responseCaptor = ArgumentCaptor
-                .forClass(SeatCheckResponse.class);
-        verify(responseObserver)
-                .onNext(responseCaptor.capture());
-        verify(responseObserver).onCompleted();
+    // Assert
+    ArgumentCaptor<SeatCheckResponse> responseCaptor =
+        ArgumentCaptor.forClass(SeatCheckResponse.class);
+    verify(responseObserver).onNext(responseCaptor.capture());
+    verify(responseObserver).onCompleted();
 
-        SeatCheckResponse response = responseCaptor
-                .getValue();
-        assertThat(response.getAllAvailable()).isFalse();
-    }
+    SeatCheckResponse response = responseCaptor.getValue();
+    assertThat(response.getAllAvailable()).isFalse();
+  }
 }
