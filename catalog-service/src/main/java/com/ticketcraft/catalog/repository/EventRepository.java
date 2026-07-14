@@ -10,6 +10,8 @@ import java.util.List;
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-    @Query(value = "SELECT * FROM events WHERE search_vector @@ plainto_tsquery('english', :query)", nativeQuery = true)
+    @Query(value = "SELECT * FROM events " +
+            "WHERE search_vector @@ plainto_tsquery('english', :query)",
+            nativeQuery = true)
     List<Event> searchEvents(@Param("query") String query);
 }

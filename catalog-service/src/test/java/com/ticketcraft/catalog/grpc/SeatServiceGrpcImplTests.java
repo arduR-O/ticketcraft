@@ -48,7 +48,8 @@ class SeatServiceGrpcImplTests {
                 .event(event)
                 .build();
 
-        when(seatRepository.findAllById(List.of(101L))).thenReturn(List.of(seat1));
+        when(seatRepository.findAllById(List.of(101L)))
+                .thenReturn(List.of(seat1));
 
         SeatCheckRequest request = SeatCheckRequest.newBuilder()
                 .addSeatIds(101L)
@@ -59,7 +60,8 @@ class SeatServiceGrpcImplTests {
         seatServiceGrpc.checkSeats(request, responseObserver);
 
         // Assert
-        ArgumentCaptor<SeatCheckResponse> responseCaptor = ArgumentCaptor.forClass(SeatCheckResponse.class);
+        ArgumentCaptor<SeatCheckResponse> responseCaptor = 
+                ArgumentCaptor.forClass(SeatCheckResponse.class);
         verify(responseObserver, times(1)).onNext(responseCaptor.capture());
         verify(responseObserver, times(1)).onCompleted();
 
@@ -90,7 +92,8 @@ class SeatServiceGrpcImplTests {
                 .event(event)
                 .build();
 
-        when(seatRepository.findAllById(List.of(101L))).thenReturn(List.of(seat1));
+        when(seatRepository.findAllById(List.of(101L)))
+                .thenReturn(List.of(seat1));
 
         SeatCheckRequest request = SeatCheckRequest.newBuilder()
                 .addSeatIds(101L)
@@ -101,7 +104,8 @@ class SeatServiceGrpcImplTests {
         seatServiceGrpc.checkSeats(request, responseObserver);
 
         // Assert
-        ArgumentCaptor<SeatCheckResponse> responseCaptor = ArgumentCaptor.forClass(SeatCheckResponse.class);
+        ArgumentCaptor<SeatCheckResponse> responseCaptor = 
+                ArgumentCaptor.forClass(SeatCheckResponse.class);
         verify(responseObserver).onNext(responseCaptor.capture());
         verify(responseObserver).onCompleted();
 
