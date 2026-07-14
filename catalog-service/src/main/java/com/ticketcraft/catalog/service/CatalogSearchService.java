@@ -6,6 +6,7 @@ import com.ticketcraft.catalog.repository.EventRepository;
 import com.ticketcraft.catalog.repository.SeatRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +19,11 @@ public class CatalogSearchService {
   private final SeatRepository seatRepository;
 
   /** Search events using PostgreSQL native full-text search against 'search_vector'. */
-  public List<Event> searchEvents(String query) {
+  public List<Event> searchEvents(String query, Pageable pageable) {
     if (query == null || query.trim().isEmpty()) {
-      return eventRepository.findAll();
+      return eventRepository.findAll(pageable).getContent();
     }
-    return eventRepository.searchEvents(query);
+    return eventRepository.searchEvents(query, pageable);
   }
 
   /** Get all seats for a specific event. */

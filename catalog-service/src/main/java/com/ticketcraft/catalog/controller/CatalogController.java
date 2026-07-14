@@ -5,6 +5,8 @@ import com.ticketcraft.catalog.model.Seat;
 import com.ticketcraft.catalog.service.CatalogSearchService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,8 +20,11 @@ public class CatalogController {
   /** Search events based on partial/full FTS keywords. */
   @GetMapping("/search")
   public ResponseEntity<List<Event>> searchEvents(
-      @RequestParam(value = "query", required = false) String query) {
-    List<Event> events = catalogSearchService.searchEvents(query);
+      @RequestParam(value = "query", required = false) String query,
+      @RequestParam(value = "page", defaultValue = "0") int page,
+      @RequestParam(value = "size", defaultValue = "20") int size) {
+    Pageable pageable = PageRequest.of(page, size);
+    List<Event> events = catalogSearchService.searchEvents(query, pageable);
     return ResponseEntity.ok(events);
   }
 

@@ -1,5 +1,7 @@
 package com.ticketcraft.catalog.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,7 +30,8 @@ class CatalogControllerTests {
   void searchEvents_shouldReturnEvents() throws Exception {
     Event event = Event.builder().id(1L).title("Queen Live at Wembley").build();
 
-    when(catalogSearchService.searchEvents("Queen")).thenReturn(List.of(event));
+    when(catalogSearchService.searchEvents(eq("Queen"), any(Pageable.class)))
+        .thenReturn(List.of(event));
 
     mockMvc
         .perform(
