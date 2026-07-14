@@ -44,6 +44,13 @@
             <artifactId>liquibase-core</artifactId>
         </dependency>
 
+        <!-- In-memory H2 Database for Repository Unit Testing -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- gRPC Server Dependencies -->
         <dependency>
             <groupId>net.devh</groupId>

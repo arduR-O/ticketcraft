@@ -1,0 +1,150 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.0-create-tables
+      author: ardur
+      changes:
+        - createTable:
+            tableName: artists
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: genre
+                  type: varchar(255)
+              - column:
+                  name: description
+                  type: text
+
+        - createTable:
+            tableName: venues
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: location
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: capacity
+                  type: integer
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: events
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+              - column:
+                  name: date
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: artist_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_event_artist
+                    referencedTableName: artists
+                    referencedColumnNames: id
+              - column:
+                  name: venue_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_event_venue
+                    referencedTableName: venues
+                    referencedColumnNames: id
+
+        - createTable:
+            tableName: seats
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: seat_number
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: row_number
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: price
+                  type: decimal(10, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: event_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_seat_event
+                    referencedTableName: events
+                    referencedColumnNames: id
+
+        # Add Postgres full-text search column 'search_vector' to events table
+        - addColumn:
+            tableName: events
+            columns:
+              - column:
+                  name: search_vector
+                  type: tsvector
+
+        # Create raw SQL tag for creating a GIN index on search_vector
+        # Note: GIN (Generalized Inverted Index) is the standard index type for text search vectors in Postgres.
+        - sql:
+            dbms: postgresql
+            sql: CREATE INDEX idx_events_search_vector ON events USING gin(search_vector);
