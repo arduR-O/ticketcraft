@@ -24,4 +24,8 @@ public class Venue {
 
     @Column(nullable = false)
     private Integer capacity;
+
+    private Double latitude;
+
+    private Double longitude;
 }

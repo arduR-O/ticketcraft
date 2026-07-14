@@ -47,9 +47,13 @@ class CatalogRepositoryTests {
                 .name("Wembley Stadium")
                 .location("London, UK")
                 .capacity(90000)
+                .latitude(51.5560)
+                .longitude(-0.2796)
                 .build();
         Venue savedVenue = venueRepository.save(venue);
         assertThat(savedVenue.getId()).isNotNull();
+        assertThat(savedVenue.getLatitude()).isEqualTo(51.5560);
+        assertThat(savedVenue.getLongitude()).isEqualTo(-0.2796);
 
         // 3. Create and Save Event
         Event event = Event.builder()
