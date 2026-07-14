@@ -18,7 +18,6 @@ public class CatalogSearchService {
   private final EventRepository eventRepository;
   private final SeatRepository seatRepository;
 
-  /** Search events using PostgreSQL native full-text search against 'search_vector'. */
   public List<Event> searchEvents(String query, Pageable pageable) {
     if (query == null || query.trim().isEmpty()) {
       return eventRepository.findAll(pageable).getContent();
@@ -26,7 +25,6 @@ public class CatalogSearchService {
     return eventRepository.searchEvents(query, pageable);
   }
 
-  /** Get all seats for a specific event. */
   public List<Seat> getSeatsForEvent(Long eventId) {
     return seatRepository.findByEventId(eventId);
   }

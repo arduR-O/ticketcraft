@@ -27,10 +27,9 @@ public class SeatServiceGrpcImpl extends SeatServiceGrpc.SeatServiceImplBase {
     log.info("gRPC Request - Checking seats: {} and event: {}", requestedSeatIds, eventId);
 
     try {
-      // 1. Fetch seats from database
       List<Seat> seats = seatRepository.findAllById(requestedSeatIds);
 
-      // 2. Validate seat matching criteria:
+      // Validate matching requested criteria:
       // - Did we find all the requested seats?
       // - Do all seats belong to the requested event?
       // - Are all seats currently "AVAILABLE"?
@@ -41,7 +40,6 @@ public class SeatServiceGrpcImpl extends SeatServiceGrpc.SeatServiceImplBase {
 
       boolean allAvailableStatus = allFound && allMatchEvent && allAvailable;
 
-      // 3. Map to protobuf SeatInfo list
       List<SeatInfo> seatInfoList =
           seats.stream()
               .map(
@@ -59,7 +57,6 @@ public class SeatServiceGrpcImpl extends SeatServiceGrpc.SeatServiceImplBase {
                           .build())
               .collect(Collectors.toList());
 
-      // 4. Send response
       SeatCheckResponse response =
           SeatCheckResponse.newBuilder()
               .setAllAvailable(allAvailableStatus)

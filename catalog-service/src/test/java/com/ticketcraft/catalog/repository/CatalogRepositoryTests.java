@@ -30,7 +30,6 @@ class CatalogRepositoryTests {
 
   @Test
   void testDatabaseMappingsAndQueries() {
-    // 1. Create and Save Artist
     Artist artist =
         Artist.builder()
             .name("Queen")
@@ -40,7 +39,6 @@ class CatalogRepositoryTests {
     Artist savedArtist = artistRepository.save(artist);
     assertThat(savedArtist.getId()).isNotNull();
 
-    // 2. Create and Save Venue
     Venue venue =
         Venue.builder()
             .name("Wembley Stadium")
@@ -54,7 +52,6 @@ class CatalogRepositoryTests {
     assertThat(savedVenue.getLatitude()).isEqualTo(51.5560);
     assertThat(savedVenue.getLongitude()).isEqualTo(-0.2796);
 
-    // 3. Create and Save Event
     Event event =
         Event.builder()
             .title("Queen Live at Wembley")
@@ -66,7 +63,6 @@ class CatalogRepositoryTests {
     Event savedEvent = eventRepository.save(event);
     assertThat(savedEvent.getId()).isNotNull();
 
-    // 4. Create and Save Seats
     Seat seat1 =
         Seat.builder()
             .seatNumber("A-101")
@@ -95,7 +91,6 @@ class CatalogRepositoryTests {
 
     seatRepository.saveAll(List.of(seat1, seat2));
 
-    // 5. Query and Assert
     List<Seat> seats = seatRepository.findByEventId(savedEvent.getId());
     assertThat(seats).hasSize(2);
     assertThat(seats).extracting(Seat::getSeatNumber).containsExactlyInAnyOrder("A-101", "A-102");

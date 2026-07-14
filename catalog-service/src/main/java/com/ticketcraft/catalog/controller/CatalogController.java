@@ -17,7 +17,6 @@ public class CatalogController {
 
   private final CatalogSearchService catalogSearchService;
 
-  /** Search events based on partial/full FTS keywords. */
   @GetMapping("/search")
   public ResponseEntity<List<Event>> searchEvents(
       @RequestParam(value = "query", required = false) String query,
@@ -28,7 +27,6 @@ public class CatalogController {
     return ResponseEntity.ok(events);
   }
 
-  /** Fetch the seat map list for a specific event. */
   @GetMapping("/{id}/seatmap")
   public ResponseEntity<List<Seat>> getSeatmap(@PathVariable("id") Long id) {
     List<Seat> seats = catalogSearchService.getSeatsForEvent(id);
