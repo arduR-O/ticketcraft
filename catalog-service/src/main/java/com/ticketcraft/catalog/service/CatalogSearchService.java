@@ -22,8 +22,7 @@ public class CatalogSearchService {
     if (query == null || query.trim().isEmpty()) {
       return eventRepository.findAll(pageable).getContent();
     }
-    String formattedQuery =
-        query.replaceAll("[^a-zA-Z0-9\\s]", "").trim().replaceAll("\\s+", " | ");
+    String formattedQuery = query.replaceAll("[^a-zA-Z0-9]", " ").trim().replaceAll("\\s+", " | ");
 
     if (formattedQuery.isEmpty()) {
       return eventRepository.findAll(pageable).getContent();
