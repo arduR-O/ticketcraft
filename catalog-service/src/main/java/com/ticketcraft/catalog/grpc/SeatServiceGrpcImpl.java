@@ -1,0 +1,68 @@
+package com.ticketcraft.catalog.grpc;
+
+import com.ticketcraft.catalog.model.Seat;
+import com.ticketcraft.catalog.repository.SeatRepository;
+import io.grpc.stub.StreamObserver;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.devh.boot.grpc.server.service.GrpcService;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@GrpcService
+@RequiredArgsConstructor
+@Slf4j
+public class SeatServiceGrpcImpl extends SeatServiceGrpc.SeatServiceImplBase {
+
+    private final SeatRepository seatRepository;
+
+    @Override
+    public void checkSeats(SeatCheckRequest request, StreamObserver<SeatCheckResponse> responseObserver) {
+        List<Long> requestedSeatIds = request.getSeatIdsList();
+        long eventId = request.getEventId();
+        log.info("gRPC Request - Checking availability for seats: {} and event: {}", requestedSeatIds, eventId);
+
+        try {
+            // 1. Fetch seats from database
+            List<Seat> seats = seatRepository.findAllById(requestedSeatIds);
+
+            // 2. Validate seat matching criteria:
+            // - Did we find all the requested seats?
+            // - Do all seats belong to the requested event?
+            // - Are all seats currently "AVAILABLE"?
+            boolean allFound = seats.size() == requestedSeatIds.size();
+            boolean allMatchEvent = seats.stream().allMatch(seat -> seat.getEvent().getId() == eventId);
+            boolean allAvailable = seats.stream().allMatch(seat -> "AVAILABLE".equalsIgnoreCase(seat.getStatus()));
+
+            boolean allAvailableStatus = allFound && allMatchEvent && allAvailable;
+
+            // 3. Map to protobuf SeatInfo list
+            List<SeatInfo> seatInfoList = seats.stream().map(seat -> SeatInfo.newBuilder()
+                    .setSeatId(seat.getId())
+                    .setSeatNumber(seat.getSeatNumber())
+                    .setRowNumber(seat.getRowNumber())
+                    .setStatus(seat.getStatus())
+                    .setPrice(seat.getPrice().toString()) // Transfer BigDecimal as string to avoid rounding errors
+                    .setCategory(seat.getCategory())
+                    .build()
+            ).collect(Collectors.toList());
+
+            // 4. Send response
+            SeatCheckResponse response = SeatCheckResponse.newBuilder()
+                    .setAllAvailable(allAvailableStatus)
+                    .addAllSeats(seatInfoList)
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (Exception e) {
+            log.error("Failed to execute gRPC seat check", e);
+            responseObserver.onError(io.grpc.Status.INTERNAL
+                    .withDescription("Internal error checking seats: " + e.getMessage())
+                    .asRuntimeException());
+        }
+    }
+}

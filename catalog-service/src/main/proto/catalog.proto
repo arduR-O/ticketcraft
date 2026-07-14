@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package com.ticketcraft.catalog.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.ticketcraft.catalog.grpc";
+option java_outer_classname = "CatalogProto";
+
+service SeatService {
+  rpc CheckSeats (SeatCheckRequest) returns (SeatCheckResponse);
+}
+
+message SeatCheckRequest {
+  repeated int64 seat_ids = 1;
+  int64 event_id = 2;
+}
+
+message SeatCheckResponse {
+  bool all_available = 1;
+  repeated SeatInfo seats = 2;
+}
+
+message SeatInfo {
+  int64 seat_id = 1;
+  string seat_number = 2;
+  string row_number = 3;
+  string status = 4;
+  string price = 5; // Transmitting BigDecimal as String to prevent rounding errors
+  string category = 6;
+}
