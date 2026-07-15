@@ -13,8 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -36,27 +34,21 @@ class CatalogSearchServiceTests {
   }
 
   @Test
-  void searchEvents_withEmptyQuery_shouldReturnAllEvents() {
-    Page<Event> eventPage = new PageImpl<>(List.of(testEvent));
-    when(eventRepository.findAll(pageable)).thenReturn(eventPage);
-
+  void searchEvents_withEmptyQuery_shouldReturnEmptyList() {
     List<Event> results = catalogSearchService.searchEvents("", pageable);
 
-    assertThat(results).hasSize(1);
-    assertThat(results.get(0).getTitle()).isEqualTo("Queen Live at Wembley");
-    verify(eventRepository, times(1)).findAll(pageable);
+    assertThat(results).isEmpty();
+    verify(eventRepository, never()).findAll(any(Pageable.class));
     verify(eventRepository, never()).searchEvents(anyString(), any(Pageable.class));
   }
 
   @Test
-  void searchEvents_withNullQuery_shouldReturnAllEvents() {
-    Page<Event> eventPage = new PageImpl<>(List.of(testEvent));
-    when(eventRepository.findAll(pageable)).thenReturn(eventPage);
-
+  void searchEvents_withNullQuery_shouldReturnEmptyList() {
     List<Event> results = catalogSearchService.searchEvents(null, pageable);
 
-    assertThat(results).hasSize(1);
-    verify(eventRepository, times(1)).findAll(pageable);
+    assertThat(results).isEmpty();
+    verify(eventRepository, never()).findAll(any(Pageable.class));
+    verify(eventRepository, never()).searchEvents(anyString(), any(Pageable.class));
   }
 
   @Test

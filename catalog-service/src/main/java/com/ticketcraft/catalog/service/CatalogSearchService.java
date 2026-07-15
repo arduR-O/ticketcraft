@@ -20,12 +20,12 @@ public class CatalogSearchService {
 
   public List<Event> searchEvents(String query, Pageable pageable) {
     if (query == null || query.trim().isEmpty()) {
-      return eventRepository.findAll(pageable).getContent();
+      return List.of();
     }
     String formattedQuery = query.replaceAll("[^a-zA-Z0-9]", " ").trim().replaceAll("\\s+", " | ");
 
     if (formattedQuery.isEmpty()) {
-      return eventRepository.findAll(pageable).getContent();
+      return List.of();
     }
     return eventRepository.searchEvents(formattedQuery, pageable);
   }
