@@ -17,12 +17,13 @@ public class CatalogController {
 
   private final CatalogSearchService catalogSearchService;
 
+  private static final int PAGE_SIZE = 20;
+
   @GetMapping("/search")
   public ResponseEntity<List<Event>> searchEvents(
       @RequestParam(value = "query", required = false) String query,
-      @RequestParam(value = "page", defaultValue = "0") int page,
-      @RequestParam(value = "size", defaultValue = "20") int size) {
-    Pageable pageable = PageRequest.of(page, size);
+      @RequestParam(value = "page", defaultValue = "0") int page) {
+    Pageable pageable = PageRequest.of(page, PAGE_SIZE);
     List<Event> events = catalogSearchService.searchEvents(query, pageable);
     return ResponseEntity.ok(events);
   }
