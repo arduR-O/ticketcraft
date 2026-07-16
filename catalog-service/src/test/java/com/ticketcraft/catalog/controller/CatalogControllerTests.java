@@ -6,8 +6,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.ticketcraft.catalog.model.Event;
+import com.ticketcraft.catalog.dto.EventResponse;
 import com.ticketcraft.catalog.service.CatalogSearchService;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +29,18 @@ class CatalogControllerTests {
 
   @Test
   void searchEvents_shouldReturnEvents() throws Exception {
-    Event event = Event.builder().id(1L).title("Queen Live at Wembley").build();
+    EventResponse eventResponse =
+        new EventResponse(
+            1L,
+            "Queen Live at Wembley",
+            "Magic Tour",
+            LocalDateTime.now(),
+            "Queen",
+            "Wembley Stadium",
+            "London");
 
     when(catalogSearchService.searchEvents(eq("Queen"), any(Pageable.class)))
-        .thenReturn(List.of(event));
+        .thenReturn(List.of(eventResponse));
 
     mockMvc
         .perform(

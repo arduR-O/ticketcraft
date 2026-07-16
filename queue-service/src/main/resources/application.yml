@@ -4,9 +4,6 @@ server:
 spring:
   application:
     name: queue-service
-  threads:
-    virtual:
-      enabled: true
   data:
     redis:
       host: localhost

@@ -15,10 +15,10 @@
     <name>Booking Service</name>
 
     <dependencies>
-        <!-- Spring Boot WebFlux (SSE and netty dynamic non-blocking threads) -->
+        <!-- Spring Boot Web (Tomcat + Virtual Threads for blocking JPA) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <!-- Eureka Client -->

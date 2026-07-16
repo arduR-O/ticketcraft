@@ -14,8 +14,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
   @Query(
       value =
           "SELECT * FROM events "
-              + "WHERE search_vector @@ to_tsquery('english', :query) "
-              + "ORDER BY ts_rank(search_vector, to_tsquery('english', :query)) DESC",
+              + "WHERE search_vector @@ REPLACE(plainto_tsquery('english', :query)::text, '&', '|')::tsquery "
+              + "ORDER BY ts_rank(search_vector, REPLACE(plainto_tsquery('english', :query)::text, '&', '|')::tsquery) DESC",
       nativeQuery = true)
   List<Event> searchEvents(@Param("query") String query, Pageable pageable);
 }

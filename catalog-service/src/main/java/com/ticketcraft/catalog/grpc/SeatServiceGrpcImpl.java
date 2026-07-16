@@ -10,9 +10,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @GrpcService
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class SeatServiceGrpcImpl extends SeatServiceGrpc.SeatServiceImplBase {
 
   private final SeatRepository seatRepository;
@@ -27,7 +30,7 @@ public class SeatServiceGrpcImpl extends SeatServiceGrpc.SeatServiceImplBase {
     log.info("gRPC Request - Checking seats: {} and event: {}", requestedSeatIds, eventId);
 
     try {
-      List<Seat> seats = seatRepository.findAllById(requestedSeatIds);
+      List<Seat> seats = seatRepository.findAllByIdWithEvent(requestedSeatIds);
 
       // Validate matching requested criteria:
       // - Did we find all the requested seats?

@@ -16,6 +16,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import com.ticketcraft.catalog.dto.EventResponse;
+import com.ticketcraft.catalog.model.Artist;
+import com.ticketcraft.catalog.model.Venue;
+
 @ExtendWith(MockitoExtension.class)
 class CatalogSearchServiceTests {
 
@@ -29,13 +33,19 @@ class CatalogSearchServiceTests {
   @BeforeEach
   void setUp() {
     testEvent =
-        Event.builder().id(1L).title("Queen Live at Wembley").description("Magic Tour").build();
+        Event.builder()
+            .id(1L)
+            .title("Queen Live at Wembley")
+            .description("Magic Tour")
+            .artist(Artist.builder().name("Queen").build())
+            .venue(Venue.builder().name("Wembley Stadium").location("London").build())
+            .build();
     pageable = PageRequest.of(0, 20);
   }
 
   @Test
   void searchEvents_withEmptyQuery_shouldReturnEmptyList() {
-    List<Event> results = catalogSearchService.searchEvents("", pageable);
+    List<EventResponse> results = catalogSearchService.searchEvents("", pageable);
 
     assertThat(results).isEmpty();
     verify(eventRepository, never()).findAll(any(Pageable.class));
@@ -44,7 +54,7 @@ class CatalogSearchServiceTests {
 
   @Test
   void searchEvents_withNullQuery_shouldReturnEmptyList() {
-    List<Event> results = catalogSearchService.searchEvents(null, pageable);
+    List<EventResponse> results = catalogSearchService.searchEvents(null, pageable);
 
     assertThat(results).isEmpty();
     verify(eventRepository, never()).findAll(any(Pageable.class));
@@ -55,21 +65,22 @@ class CatalogSearchServiceTests {
   void searchEvents_withQuery_shouldCallSearchRepository() {
     when(eventRepository.searchEvents("Queen", pageable)).thenReturn(List.of(testEvent));
 
-    List<Event> results = catalogSearchService.searchEvents("Queen", pageable);
+    List<EventResponse> results = catalogSearchService.searchEvents("Queen", pageable);
 
     assertThat(results).hasSize(1);
-    assertThat(results.get(0).getTitle()).isEqualTo("Queen Live at Wembley");
+    assertThat(results.get(0).title()).isEqualTo("Queen Live at Wembley");
+    assertThat(results.get(0).artistName()).isEqualTo("Queen");
     verify(eventRepository, times(1)).searchEvents("Queen", pageable);
     verify(eventRepository, never()).findAll(any(Pageable.class));
   }
 
   @Test
-  void searchEvents_withMultiWordQuery_shouldFormatToOrSearch() {
-    when(eventRepository.searchEvents("Queen | Wembley", pageable)).thenReturn(List.of(testEvent));
+  void searchEvents_shouldPassRawQueryToRepository() {
+    when(eventRepository.searchEvents("Queen & Wembley!", pageable)).thenReturn(List.of(testEvent));
 
-    List<Event> results = catalogSearchService.searchEvents("Queen & Wembley!", pageable);
+    List<EventResponse> results = catalogSearchService.searchEvents("Queen & Wembley!", pageable);
 
     assertThat(results).hasSize(1);
-    verify(eventRepository, times(1)).searchEvents("Queen | Wembley", pageable);
+    verify(eventRepository, times(1)).searchEvents("Queen & Wembley!", pageable);
   }
 }

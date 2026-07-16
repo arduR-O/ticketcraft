@@ -1,5 +1,7 @@
 package com.ticketcraft.catalog.service;
 
+import com.ticketcraft.catalog.dto.EventResponse;
+import com.ticketcraft.catalog.dto.SeatResponse;
 import com.ticketcraft.catalog.model.Event;
 import com.ticketcraft.catalog.model.Seat;
 import com.ticketcraft.catalog.repository.EventRepository;
@@ -18,19 +20,39 @@ public class CatalogSearchService {
   private final EventRepository eventRepository;
   private final SeatRepository seatRepository;
 
-  public List<Event> searchEvents(String query, Pageable pageable) {
+  public List<EventResponse> searchEvents(String query, Pageable pageable) {
     if (query == null || query.trim().isEmpty()) {
       return List.of();
     }
-    String formattedQuery = query.replaceAll("[^a-zA-Z0-9]", " ").trim().replaceAll("\\s+", " | ");
-
-    if (formattedQuery.isEmpty()) {
-      return List.of();
-    }
-    return eventRepository.searchEvents(formattedQuery, pageable);
+    return eventRepository.searchEvents(query, pageable).stream()
+        .map(
+            event ->
+                new EventResponse(
+                    event.getId(),
+                    event.getTitle(),
+                    event.getDescription(),
+                    event.getDate(),
+                    event.getArtist().getName(),
+                    event.getVenue().getName(),
+                    event.getVenue().getLocation()))
+        .toList();
   }
 
-  public List<Seat> getSeatsForEvent(Long eventId) {
-    return seatRepository.findByEventId(eventId);
+  public List<SeatResponse> getSeatsForEvent(Long eventId) {
+    return seatRepository.findByEventId(eventId).stream()
+        .map(
+            seat ->
+                new SeatResponse(
+                    seat.getId(),
+                    seat.getSeatNumber(),
+                    seat.getRowNumber(),
+                    seat.getSection(),
+                    seat.getXCoordinate(),
+                    seat.getYCoordinate(),
+                    seat.getCategory(),
+                    seat.getStatus(),
+                    seat.getPrice(),
+                    seat.getEvent().getId()))
+        .toList();
   }
 }

@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: seed-dummy-data
+      author: omansh
+      changes:
+        - insert:
+            tableName: artists
+            columns:
+              - column:
+                  name: name
+                  value: "Queen"
+              - column:
+                  name: genre
+                  value: "Rock"
+              - column:
+                  name: description
+                  value: "British rock band formed in London in 1970."
+        - insert:
+            tableName: venues
+            columns:
+              - column:
+                  name: name
+                  value: "Wembley Stadium"
+              - column:
+                  name: location
+                  value: "London, UK"
+              - column:
+                  name: capacity
+                  value: 90000
+        - insert:
+            tableName: events
+            columns:
+              - column:
+                  name: title
+                  value: "Queen Live at Wembley"
+              - column:
+                  name: description
+                  value: "The legendary 1986 Magic Tour concert."
+              - column:
+                  name: date
+                  value: "2026-07-12T20:00:00"
+              - column:
+                  name: artist_id
+                  valueComputed: "(SELECT id FROM artists WHERE name = 'Queen' LIMIT 1)"
+              - column:
+                  name: venue_id
+                  valueComputed: "(SELECT id FROM venues WHERE name = 'Wembley Stadium' LIMIT 1)"
+        - sql:
+            dbms: postgresql
+            sql: |
+              DO $$ 
+              DECLARE
+                v_event_id BIGINT;
+                i INT;
+              BEGIN
+                SELECT id INTO v_event_id FROM events WHERE title = 'Queen Live at Wembley' LIMIT 1;
+                FOR i IN 1..50 LOOP
+                  INSERT INTO seats (seat_number, row_number, section, category, status, price, event_id)
+                  VALUES ('S' || i, 'A', '101', 'STANDARD', 'AVAILABLE', 150.00, v_event_id);
+                END LOOP;
+              END $$;

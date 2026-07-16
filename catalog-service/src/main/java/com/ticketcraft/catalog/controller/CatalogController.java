@@ -1,7 +1,7 @@
 package com.ticketcraft.catalog.controller;
 
-import com.ticketcraft.catalog.model.Event;
-import com.ticketcraft.catalog.model.Seat;
+import com.ticketcraft.catalog.dto.EventResponse;
+import com.ticketcraft.catalog.dto.SeatResponse;
 import com.ticketcraft.catalog.service.CatalogSearchService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,17 +20,17 @@ public class CatalogController {
   private static final int PAGE_SIZE = 20;
 
   @GetMapping("/search")
-  public ResponseEntity<List<Event>> searchEvents(
+  public ResponseEntity<List<EventResponse>> searchEvents(
       @RequestParam(value = "query", required = false) String query,
       @RequestParam(value = "page", defaultValue = "0") int page) {
     Pageable pageable = PageRequest.of(page, PAGE_SIZE);
-    List<Event> events = catalogSearchService.searchEvents(query, pageable);
+    List<EventResponse> events = catalogSearchService.searchEvents(query, pageable);
     return ResponseEntity.ok(events);
   }
 
   @GetMapping("/{id}/seatmap")
-  public ResponseEntity<List<Seat>> getSeatmap(@PathVariable("id") Long id) {
-    List<Seat> seats = catalogSearchService.getSeatsForEvent(id);
+  public ResponseEntity<List<SeatResponse>> getSeatmap(@PathVariable("id") Long id) {
+    List<SeatResponse> seats = catalogSearchService.getSeatsForEvent(id);
     return ResponseEntity.ok(seats);
   }
 }

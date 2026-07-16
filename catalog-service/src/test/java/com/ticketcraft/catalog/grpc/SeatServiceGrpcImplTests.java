@@ -45,7 +45,7 @@ class SeatServiceGrpcImplTests {
             .event(event)
             .build();
 
-    when(seatRepository.findAllById(List.of(101L))).thenReturn(List.of(seat1));
+    when(seatRepository.findAllByIdWithEvent(List.of(101L))).thenReturn(List.of(seat1));
 
     SeatCheckRequest request =
         SeatCheckRequest.newBuilder().addSeatIds(101L).setEventId(1L).build();
@@ -87,7 +87,7 @@ class SeatServiceGrpcImplTests {
             .event(event)
             .build();
 
-    when(seatRepository.findAllById(List.of(101L))).thenReturn(List.of(seat1));
+    when(seatRepository.findAllByIdWithEvent(List.of(101L))).thenReturn(List.of(seat1));
 
     SeatCheckRequest request =
         SeatCheckRequest.newBuilder().addSeatIds(101L).setEventId(1L).build();
