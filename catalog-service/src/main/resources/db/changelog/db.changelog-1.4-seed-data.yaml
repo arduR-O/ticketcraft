@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: seed-dummy-data
-      author: omansh
+      author: arduR-O
       changes:
         - insert:
             tableName: artists

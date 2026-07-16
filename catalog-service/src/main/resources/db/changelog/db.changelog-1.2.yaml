@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 1.2-add-location-coords-and-indexes
-      author: omansh
+      author: arduR-O
       changes:
         # 1. Add coordinates columns to venues table
         - addColumn:

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 1.0-create-tables
-      author: ardur
+      author: arduR-O
       changes:
         - createTable:
             tableName: artists

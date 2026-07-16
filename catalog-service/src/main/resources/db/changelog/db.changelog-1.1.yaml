@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 1.1-create-fts-trigger
-      author: ardur
+      author: arduR-O
       changes:
         - sql:
             dbms: postgresql
