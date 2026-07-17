@@ -1,0 +1,145 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: arduR-O
+      changes:
+        - createTable:
+            tableName: bookings
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: event_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: PENDING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_price
+                  type: DECIMAL(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_bookings_status
+            tableName: bookings
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: idx_bookings_user_id
+            tableName: bookings
+            columns:
+              - column:
+                  name: user_id
+        - createIndex:
+            indexName: idx_bookings_expires_at
+            tableName: bookings
+            columns:
+              - column:
+                  name: expires_at
+        # Conditional index syntax in standard XML/YAML liquibase can be tricky for WHERE status='PENDING'.
+        # We'll use sql script to add partial index.
+
+  - changeSet:
+      id: 2
+      author: arduR-O
+      changes:
+        - sql:
+            sql: "CREATE INDEX idx_bookings_expires_pending ON bookings(expires_at) WHERE status = 'PENDING';"
+
+  - changeSet:
+      id: 3
+      author: arduR-O
+      changes:
+        - createTable:
+            tableName: reserved_seats
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: booking_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_reserved_seats_booking
+                    references: bookings(id)
+                    deleteCascade: true
+              - column:
+                  name: seat_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: seat_number
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: row_number
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: section
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: price
+                  type: DECIMAL(10,2)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: reserved_seats
+            columnNames: booking_id, seat_id
+            constraintName: uq_booking_seat
+
+        - createIndex:
+            indexName: idx_reserved_seats_booking
+            tableName: reserved_seats
+            columns:
+              - column:
+                  name: booking_id
+        - createIndex:
+            indexName: idx_reserved_seats_seat
+            tableName: reserved_seats
+            columns:
+              - column:
+                  name: seat_id

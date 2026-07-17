@@ -1,0 +1,60 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: booking-service
+  threads:
+    virtual:
+      enabled: true               # Virtual threads for Tomcat — key for blocking JPA
+  datasource:
+    url: jdbc:postgresql://localhost:5432/booking_db
+    username: postgres
+    password: postgres
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 10
+      connection-timeout: 20000
+  jpa:
+    hibernate:
+      ddl-auto: validate           # Liquibase manages schema
+    show-sql: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: booking-payment-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.ticketcraft.*"
+
+# Redisson
+redisson:
+  single-server-config:
+    address: redis://localhost:6379
+    password: redis
+
+# gRPC client pointing to catalog-service
+grpc:
+  client:
+    catalog-service:
+      address: discovery:///catalog-service    # Eureka-resolved
+      negotiation-type: plaintext
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+booking:
+  lock-lease-minutes: 11           # 1 min buffer over 10-min cart expiry
+  cart-expiry-minutes: 10
+  max-seats-per-booking: 6
