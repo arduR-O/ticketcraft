@@ -8,21 +8,69 @@ spring:
     redis:
       host: localhost
       port: 6379
+      password: redis
   cloud:
     gateway:
       routes:
-        - id: catalog-service
+        # ── Queue-pass-protected seatmap route ──
+        - id: seatmap-with-pass
           uri: lb://catalog-service
           predicates:
-            - Path=/api/events/**, /api/seats/**
+            - Path=/api/events/{id}/seatmap
           filters:
+            - QueuePassValidation
             - name: RequestRateLimiter
               args:
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
                 redis-rate-limiter.requestedTokens: 1
                 key-resolver: "#{@ipKeyResolver}"
 
+        # ── Booking Service route ──
+        - id: booking-service
+          uri: lb://booking-service
+          predicates:
+            - Path=/api/bookings/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+
+        # ── Public catalog routes (no queue pass needed) ──
+        - id: catalog-search
+          uri: lb://catalog-service
+          predicates:
+            - Path=/api/events/search
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+
+        - id: catalog-event-detail
+          uri: lb://catalog-service
+          predicates:
+            - Path=/api/events/{id}
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+
+        # ── SSE seat-stream (public - no queue pass) ──
+        - id: catalog-seat-stream
+          uri: lb://catalog-service
+          predicates:
+            - Path=/api/events/{id}/seat-stream
+
+        # ── Queue Service route ──
         - id: queue-service
           uri: lb://queue-service
           predicates:
@@ -30,8 +78,8 @@ spring:
           filters:
             - name: RequestRateLimiter
               args:
-                redis-rate-limiter.replenishRate: 5
-                redis-rate-limiter.burstCapacity: 10
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
                 redis-rate-limiter.requestedTokens: 1
                 key-resolver: "#{@ipKeyResolver}"
 
@@ -47,3 +95,8 @@ management:
     web:
       exposure:
         include: health, info
+
+queue:
+  jwt:
+    secret: "ticketcraft_waiting_room_secret_key_32_bytes_long_minimum!"
+  max-active-sessions: 10000

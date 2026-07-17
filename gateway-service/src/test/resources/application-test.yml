@@ -1,0 +1,25 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+  cloud:
+    gateway:
+      routes:
+        - id: seatmap-with-pass
+          uri: lb://catalog-service
+          predicates:
+            - Path=/api/events/{id}/seatmap
+          filters:
+            - QueuePassValidation
+
+eureka:
+  client:
+    enabled: false
+
+queue:
+  jwt:
+    secret: "ticketcraft_waiting_room_secret_key_32_bytes_long_minimum!"
+  max-active-sessions: 10000
