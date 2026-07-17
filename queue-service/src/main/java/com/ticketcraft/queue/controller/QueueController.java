@@ -2,11 +2,13 @@ package com.ticketcraft.queue.controller;
 
 import com.ticketcraft.queue.dto.QueueStatus;
 import com.ticketcraft.queue.service.QueueService;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +20,7 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/queue")
+@Validated
 public class QueueController {
 
   private final QueueService queueService;
@@ -33,7 +36,8 @@ public class QueueController {
 
   @GetMapping(value = "/stream", produces = "text/event-stream")
   public Flux<ServerSentEvent<QueueStatus>> streamQueueUpdates(
-      @RequestParam String eventId, @RequestParam String userId) {
+      @RequestParam @NotBlank(message = "eventId must not be blank") String eventId,
+      @RequestParam @NotBlank(message = "userId must not be blank") String userId) {
     return queueService
         .enqueueUser(eventId, userId)
         .thenMany(
@@ -42,7 +46,8 @@ public class QueueController {
 
   @PostMapping("/{eventId}/heartbeat")
   public Mono<ResponseEntity<Map<String, String>>> heartbeat(
-      @PathVariable String eventId, @RequestParam String userId) {
+      @PathVariable @NotBlank(message = "eventId must not be blank") String eventId,
+      @RequestParam @NotBlank(message = "userId must not be blank") String userId) {
     return queueService
         .processHeartbeat(eventId, userId)
         .map(

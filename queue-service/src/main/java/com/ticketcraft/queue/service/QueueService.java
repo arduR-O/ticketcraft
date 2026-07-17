@@ -118,11 +118,13 @@ public class QueueService {
 
   @SuppressWarnings("unchecked")
   public Mono<Void> promoteUsers(String eventId) {
-    List<String> keys = List.of(getWaitlistKey(eventId), getActiveSessionsKey(eventId), getHeartbeatsKey(eventId));
-    List<String> args = List.of(
-        String.valueOf(maxActiveSessions),
-        String.valueOf(heartbeatGraceSeconds * 1000),
-        String.valueOf(Instant.now().toEpochMilli()));
+    List<String> keys =
+        List.of(getWaitlistKey(eventId), getActiveSessionsKey(eventId), getHeartbeatsKey(eventId));
+    List<String> args =
+        List.of(
+            String.valueOf(maxActiveSessions),
+            String.valueOf(heartbeatGraceSeconds * 1000),
+            String.valueOf(Instant.now().toEpochMilli()));
 
     return redisTemplate
         .execute(promoteScript, keys, args)

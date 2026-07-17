@@ -37,6 +37,10 @@ public class CatalogSearchService {
   }
 
   public List<SeatResponse> getSeatsForEvent(Long eventId) {
+    if (!eventRepository.existsById(eventId)) {
+      throw new com.ticketcraft.catalog.exception.EventNotFoundException(
+          "Event not found with ID: " + eventId);
+    }
     return seatRepository.findByEventId(eventId).stream()
         .map(
             seat ->

@@ -80,4 +80,35 @@ class CatalogControllerTests {
         .andExpect(jsonPath("$.availableSeats").value(87))
         .andExpect(jsonPath("$.pricingTiers.VIP").value(150.00));
   }
+
+  @Test
+  void searchEvents_shouldReturnBadRequest_whenPageNumberIsNegative() throws Exception {
+    mockMvc
+        .perform(
+            get("/api/events/search")
+                .param("query", "Queen")
+                .param("page", "-1")
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.error").value("Bad Request"))
+        .andExpect(jsonPath("$.message").value("Page number must be >= 0"))
+        .andExpect(jsonPath("$.path").value("/api/events/search"));
+  }
+
+  @Test
+  void getEventDetail_shouldReturnNotFound_whenEventDoesNotExist() throws Exception {
+    when(catalogSearchService.getEventDetail(eq(999L)))
+        .thenThrow(
+            new com.ticketcraft.catalog.exception.EventNotFoundException(
+                "Event not found with ID: 999"));
+
+    mockMvc
+        .perform(get("/api/events/999").contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.status").value(404))
+        .andExpect(jsonPath("$.error").value("Not Found"))
+        .andExpect(jsonPath("$.message").value("Event not found with ID: 999"))
+        .andExpect(jsonPath("$.path").value("/api/events/999"));
+  }
 }
