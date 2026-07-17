@@ -10,6 +10,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Read-only service for querying catalog data (events, seats, and pricing).
+ * 
+ * What: Provides search capabilities for events and retrieves seat maps and detailed event data.
+ * 
+ * Why: Separates read-heavy operations from write-heavy operations (like seat status updates). 
+ * By marking it @Transactional(readOnly = true), we allow the underlying ORM to optimize fetches
+ * and avoid dirty checking, improving read throughput for the high-traffic catalog search.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -18,6 +27,18 @@ public class CatalogSearchService {
   private final EventRepository eventRepository;
   private final SeatRepository seatRepository;
 
+  /**
+   * Searches for events matching a query string.
+   * 
+   * What: Executes a full-text or LIKE search on the event repository and maps the results to DTOs.
+   * 
+   * Why: Used by the frontend search bar. Pagination is passed down to the repository layer
+   * to prevent loading thousands of events into application memory at once.
+   * 
+   * @param query The search term.
+   * @param pageable Pagination and sorting configuration.
+   * @return A list of matching EventResponse DTOs.
+   */
   public List<EventResponse> searchEvents(String query, Pageable pageable) {
     if (query == null || query.trim().isEmpty()) {
       return List.of();
@@ -36,6 +57,17 @@ public class CatalogSearchService {
         .toList();
   }
 
+  /**
+   * Retrieves the full list of seats for a specific event.
+   * 
+   * What: Validates the event exists, fetches all seats linked to it, and maps them to SeatResponse DTOs.
+   * 
+   * Why: Serves as the initial payload for the frontend seatmap rendering. Clients fetch this
+   * once on page load, and subsequently rely on the SSE stream to receive delta updates.
+   * 
+   * @param eventId The ID of the event.
+   * @return A list of all seats.
+   */
   public List<SeatResponse> getSeatsForEvent(Long eventId) {
     if (!eventRepository.existsById(eventId)) {
       throw new com.ticketcraft.catalog.exception.EventNotFoundException(
@@ -58,6 +90,18 @@ public class CatalogSearchService {
         .toList();
   }
 
+  /**
+   * Gets aggregated details for an event including pricing tiers and availability.
+   * 
+   * What: Fetches the event and its seats, aggregates the total/available seat counts, and builds
+   * a distinct list of pricing tiers.
+   * 
+   * Why: This provides the summary view for an event page (e.g. "From $50.00 | 200 seats left")
+   * without requiring the client to manually fetch and compute thousands of seat records.
+   * 
+   * @param eventId The ID of the event.
+   * @return The EventDetailResponse DTO.
+   */
   public com.ticketcraft.catalog.dto.EventDetailResponse getEventDetail(Long eventId) {
     com.ticketcraft.catalog.model.Event event =
         eventRepository

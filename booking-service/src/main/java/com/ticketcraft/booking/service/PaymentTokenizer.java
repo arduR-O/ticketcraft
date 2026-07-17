@@ -2,6 +2,15 @@ package com.ticketcraft.booking.service;
 
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for securely tokenizing raw credit card numbers.
+ * 
+ * What: Validates and converts raw PANs (Primary Account Numbers) into safe string tokens (e.g. "tok_visa_4242").
+ * 
+ * Why: To comply with PCI-DSS, raw credit card data should never touch our backend databases or logs. 
+ * This class simulates a PCI-compliant vault or tokenization layer (like Stripe Elements) that swaps
+ * sensitive data for a reference token before it is passed to the payment processor.
+ */
 @Service
 public class PaymentTokenizer {
 

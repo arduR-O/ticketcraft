@@ -33,6 +33,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service responsible for orchestrating the booking and checkout flows.
+ * It manages the lifecycle of a booking from reserving seats to finalizing payments.
+ * 
+ * Why: This service acts as the central coordinator in the distributed architecture,
+ * ensuring that distributed locks are acquired before relying on the catalog service,
+ * and broadcasting state changes to Kafka so that downstream consumers (like the SSE stream)
+ * can remain synchronized without needing direct database polling.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -51,6 +60,21 @@ public class BookingService {
   @Value("${booking.max-seats-per-booking:6}")
   private int maxSeatsPerBooking;
 
+  /**
+   * Reserves a list of seats for a user, acquiring distributed locks and verifying availability via gRPC.
+   * 
+   * What: Validates the request, acquires Redisson locks for the requested seats, validates availability
+   * with the Catalog service via gRPC, and saves a PENDING booking. Finally, it broadcasts a LOCKED event.
+   * 
+   * Why: We sort seat IDs before locking to prevent distributed deadlocks if multiple users try to book
+   * overlapping seats concurrently. We use synchronous gRPC to the Catalog service to guarantee strong
+   * consistency before writing to our local database. Kafka is used to fan-out the LOCKED state so the
+   * frontend seatmap updates in real-time.
+   *
+   * @param request The booking request containing eventId and seatIds.
+   * @param userId The ID of the user attempting to reserve seats.
+   * @return A BookingResponse reflecting the pending cart state.
+   */
   @Transactional
   public BookingResponse reserveSeats(BookingRequest request, String userId) {
     if (request.getSeatIds() == null || request.getSeatIds().isEmpty()) {
@@ -139,6 +163,23 @@ public class BookingService {
     }
   }
 
+  /**
+   * Processes the checkout for a pending booking by invoking the payment service synchronously.
+   * 
+   * What: Validates the booking state and expiry, tokenizes the payment, and makes a synchronous HTTP
+   * call to the Payment service. Depending on the result, it transitions the booking to CONFIRMED or
+   * CANCELLED, releases the distributed locks, and broadcasts the final status (SOLD or AVAILABLE) to Kafka.
+   * 
+   * Why: Checkout is implemented as a synchronous REST call rather than an async Kafka flow because
+   * payment is a 1-to-1 short wait interaction from the user's perspective. It reduces architectural
+   * overhead. Releasing locks immediately upon success/failure ensures we don't accidentally block
+   * inventory for longer than necessary.
+   *
+   * @param bookingId The UUID of the pending booking.
+   * @param request The checkout request containing payment details.
+   * @param userId The ID of the user requesting checkout.
+   * @return The finalized BookingResponse.
+   */
   @Transactional
   public BookingResponse initiateCheckout(UUID bookingId, CheckoutRequest request, String userId) {
     Booking booking = bookingRepository.findById(bookingId)
@@ -226,6 +267,18 @@ public class BookingService {
     }
   }
 
+  /**
+   * Fetches the current status of a booking.
+   * 
+   * What: Retrieves the booking from the repository and verifies user ownership.
+   * 
+   * Why: Used by the client to poll or recover state if the connection drops during checkout,
+   * ensuring users can always see their confirmed tickets.
+   *
+   * @param bookingId The UUID of the booking.
+   * @param userId The ID of the user requesting the status.
+   * @return The BookingResponse.
+   */
   public BookingResponse getBookingStatus(UUID bookingId, String userId) {
     Booking booking = bookingRepository.findById(bookingId)
         .orElseThrow(() -> new InvalidBookingRequestException("Booking not found"));

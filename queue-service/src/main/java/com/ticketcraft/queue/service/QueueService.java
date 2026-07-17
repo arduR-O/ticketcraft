@@ -16,6 +16,17 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * Core service for the virtual waiting room.
+ * 
+ * What: Manages Redis ZSets (Sorted Sets) for waitlists and active sessions, 
+ * issues JWT pass tokens, and executes Lua scripts for atomic queue promotions.
+ * 
+ * Why: High-demand ticketing requires strict fairness and rate limiting to protect
+ * downstream services (Catalog, Booking). Redis ZSets provide O(log(N)) ranking,
+ * ensuring users are processed in exactly the order they joined. Lua scripting
+ * guarantees atomicity during the complex promotion and eviction sweeps.
+ */
 @Service
 public class QueueService {
 
@@ -55,6 +66,19 @@ public class QueueService {
     return Keys.hmacShaKeyFor(jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
   }
 
+  /**
+   * Generates a signed JWT for users who have been promoted to active.
+   * 
+   * What: Builds a short-lived (5 min) JWT containing the user ID and event ID.
+   * 
+   * Why: Prevents users from forging their way past the Gateway. The Gateway will
+   * cryptographically verify this token's signature before allowing the user to hit
+   * the downstream Booking or Catalog endpoints.
+   * 
+   * @param userId The ID of the user.
+   * @param eventId The event ID.
+   * @return The signed JWT string.
+   */
   public String generatePassToken(String userId, String eventId) {
     long now = Instant.now().toEpochMilli();
     return Jwts.builder()
@@ -66,6 +90,20 @@ public class QueueService {
         .compact();
   }
 
+  /**
+   * Adds a user to the waitlist for a specific event.
+   * 
+   * What: Adds the event to the `active_event_queues` set (if not already present),
+   * and pushes the user into the waitlist ZSet with the current timestamp as their score.
+   * 
+   * Why: Storing the timestamp as the score ensures First-In-First-Out (FIFO) ordering
+   * when we rank the set later. Tracking `active_event_queues` allows the background
+   * scheduler to know exactly which events need promotion sweeps without scanning all keys.
+   * 
+   * @param eventId The event ID.
+   * @param userId The user ID.
+   * @return The 0-based rank of the user in the waitlist.
+   */
   public Mono<Long> enqueueUser(String eventId, String userId) {
     String waitlistKey = getWaitlistKey(eventId);
     double score = Instant.now().toEpochMilli();
@@ -116,6 +154,22 @@ public class QueueService {
     return redisTemplate.opsForSet().members("active_event_queues");
   }
 
+  /**
+   * Periodically promotes users from the waitlist to active sessions.
+   * 
+   * What: Executes the `promote_users.lua` script which atomically evicts dead sessions
+   * (missing heartbeats) and moves the top waitlisted users to the active set until it
+   * reaches `maxActiveSessions`. Cleans up the event from `active_event_queues` if both
+   * queues are completely empty.
+   * 
+   * Why: Using a Lua script prevents race conditions if multiple instances of QueueService
+   * attempt to promote users simultaneously. It guarantees that exactly the right number
+   * of users are promoted without exceeding the max active threshold, which protects the
+   * database from sudden traffic spikes.
+   * 
+   * @param eventId The event ID to process.
+   * @return A Mono signaling completion.
+   */
   @SuppressWarnings("unchecked")
   public Mono<Void> promoteUsers(String eventId) {
     List<String> keys =

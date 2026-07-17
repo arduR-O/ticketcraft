@@ -19,6 +19,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/**
+ * Scheduled background task for cleaning up expired booking carts.
+ * 
+ * What: Runs on a fixed delay to sweep the database for PENDING bookings that have
+ * passed their expiration time, returning those seats to the available pool.
+ * 
+ * Why: When users reserve seats, we place a distributed lock on them and remove them
+ * from availability. If the user abandons their cart or their browser crashes without
+ * cancelling, we need an automated way to reclaim those seats so they aren't lost
+ * forever. This scheduler acts as the garbage collector for stale carts.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -29,6 +40,21 @@ public class BookingExpirationScheduler {
   private final SeatLockService seatLockService;
   private final SeatStatusProducer seatStatusProducer;
 
+  /**
+   * Scans for and processes expired bookings.
+   * 
+   * What: Finds all PENDING bookings where `expiresAt` is in the past. For each, it:
+   * 1) Releases the Redisson seat locks.
+   * 2) Broadcasts a seat-status-changed (AVAILABLE) event to Kafka.
+   * 3) Updates the booking status to EXPIRED.
+   * 4) Deletes the reserved seat records.
+   * 
+   * Why: This uses a pessimistic polling approach (every 60s) rather than relying
+   * on delayed message queues. It is simpler to implement and guarantees eventual
+   * consistency. We release locks with `forceUnlock()` because this background thread
+   * did not originally acquire them. Kafka is used to fan-out the availability to
+   * all connected frontend clients so they instantly see the seats free up.
+   */
   @Scheduled(fixedDelay = 60000) // Poll every 60 seconds
   @Transactional
   public void cleanExpiredCarts() {
