@@ -16,3 +16,9 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
   instance:
     prefer-ip-address: true
+
+queue:
+  jwt:
+    secret: "ticketcraft_waiting_room_secret_key_32_bytes_long_minimum!"
+  max-active-sessions: 10000
+  heartbeat-grace-seconds: 15

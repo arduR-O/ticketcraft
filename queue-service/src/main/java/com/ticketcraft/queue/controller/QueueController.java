@@ -3,8 +3,13 @@ package com.ticketcraft.queue.controller;
 import com.ticketcraft.queue.dto.QueueStatus;
 import com.ticketcraft.queue.service.QueueService;
 import java.time.Duration;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,15 +32,33 @@ public class QueueController {
   }
 
   @GetMapping(value = "/stream", produces = "text/event-stream")
-  public Flux<ServerSentEvent<QueueStatus>> streamQueueUpdates(@RequestParam String userId) {
+  public Flux<ServerSentEvent<QueueStatus>> streamQueueUpdates(
+      @RequestParam String eventId, @RequestParam String userId) {
     return queueService
-        .enqueueUser(userId)
-        .thenMany(Flux.interval(Duration.ofSeconds(5)).flatMap(tick -> checkStatus(userId)));
+        .enqueueUser(eventId, userId)
+        .thenMany(
+            Flux.interval(Duration.ofSeconds(5)).flatMap(tick -> checkStatus(eventId, userId)));
   }
 
-  private Mono<ServerSentEvent<QueueStatus>> checkStatus(String userId) {
+  @PostMapping("/{eventId}/heartbeat")
+  public Mono<ResponseEntity<Map<String, String>>> heartbeat(
+      @PathVariable String eventId, @RequestParam String userId) {
     return queueService
-        .getPromotionPass(userId)
+        .processHeartbeat(eventId, userId)
+        .map(
+            success -> {
+              if (success) {
+                return ResponseEntity.ok(Map.of("status", "OK"));
+              } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "User not found in active sessions"));
+              }
+            });
+  }
+
+  private Mono<ServerSentEvent<QueueStatus>> checkStatus(String eventId, String userId) {
+    return queueService
+        .getPromotionPass(eventId, userId)
         .map(
             passToken ->
                 ServerSentEvent.<QueueStatus>builder()
@@ -43,16 +66,21 @@ public class QueueController {
                     .build())
         .switchIfEmpty(
             queueService
-                .getQueuePosition(userId)
+                .getQueuePosition(eventId, userId)
                 .map(
-                    position ->
-                        ServerSentEvent.<QueueStatus>builder()
-                            .data(
-                                QueueStatus.builder()
-                                    .status("WAITING")
-                                    .position(position)
-                                    .build())
-                            .build())
+                    position -> {
+                      long humanPosition = position + 1; // 0-based rank to 1-based position
+                      long minutes = Math.max(1, humanPosition / 100);
+                      String estimatedWait = minutes + " min";
+                      return ServerSentEvent.<QueueStatus>builder()
+                          .data(
+                              QueueStatus.builder()
+                                  .status("WAITING")
+                                  .position(humanPosition)
+                                  .estimatedWait(estimatedWait)
+                                  .build())
+                          .build();
+                    })
                 .defaultIfEmpty(
                     ServerSentEvent.<QueueStatus>builder()
                         .data(QueueStatus.builder().status("DISCONNECTED").build())

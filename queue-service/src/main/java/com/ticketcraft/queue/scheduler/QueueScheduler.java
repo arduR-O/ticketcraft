@@ -15,6 +15,9 @@ public class QueueScheduler {
 
   @Scheduled(fixedRate = 5000)
   public void promoteUsersInQueue() {
-    queueService.promoteUsers().subscribe();
+    queueService
+        .getActiveEventQueues()
+        .flatMap(eventId -> queueService.promoteUsers(eventId))
+        .subscribe();
   }
 }

@@ -9,4 +9,5 @@ public class QueueStatus {
   private String status;
   private Long position;
   private String passToken;
+  private String estimatedWait;
 }
