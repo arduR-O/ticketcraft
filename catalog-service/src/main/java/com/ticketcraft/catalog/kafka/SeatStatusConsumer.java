@@ -51,6 +51,7 @@ public class SeatStatusConsumer {
       log.debug("Published seat status updates to Redis topic: {}", seatUpdatesTopic.getTopic());
     } catch (Exception e) {
       log.error("Failed to process seat status update event", e);
+      throw new RuntimeException("Failed to process seat status update event", e);
     }
   }
 }
