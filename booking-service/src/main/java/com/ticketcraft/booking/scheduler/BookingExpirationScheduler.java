@@ -8,13 +8,11 @@ import com.ticketcraft.booking.model.ReservedSeat;
 import com.ticketcraft.booking.repository.BookingRepository;
 import com.ticketcraft.booking.repository.ReservedSeatRepository;
 import com.ticketcraft.booking.service.SeatLockService;
-import com.ticketcraft.booking.service.SseService;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +28,6 @@ public class BookingExpirationScheduler {
   private final ReservedSeatRepository reservedSeatRepository;
   private final SeatLockService seatLockService;
   private final SeatStatusProducer seatStatusProducer;
-  private final SseService sseService;
 
   @Scheduled(fixedDelay = 60000) // Poll every 60 seconds
   @Transactional
@@ -71,14 +68,6 @@ public class BookingExpirationScheduler {
 
         // 5. Delete reserved seats
         reservedSeatRepository.deleteByBookingId(booking.getId());
-
-        // 6. Push SSE update to /bookings/{id}/status-stream
-        sseService.pushUpdate(booking.getId(), Map.of(
-            "bookingId", booking.getId().toString(),
-            "status", "EXPIRED",
-            "reason", "Cart expired"
-        ));
-        sseService.complete(booking.getId());
 
         log.info("Successfully cleaned up expired booking {}", booking.getId());
       } catch (Exception e) {

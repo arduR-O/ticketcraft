@@ -1,15 +1,16 @@
 package com.ticketcraft.booking.service;
 
+import com.ticketcraft.booking.client.PaymentClient;
 import com.ticketcraft.booking.dto.BookingRequest;
 import com.ticketcraft.booking.dto.BookingResponse;
 import com.ticketcraft.booking.dto.CheckoutRequest;
+import com.ticketcraft.booking.dto.PaymentRequest;
+import com.ticketcraft.booking.dto.PaymentResponse;
 import com.ticketcraft.booking.dto.SeatResponse;
-import com.ticketcraft.booking.event.BookingCreatedEvent;
 import com.ticketcraft.booking.event.SeatStatusChangedEvent;
 import com.ticketcraft.booking.exception.InvalidBookingRequestException;
 import com.ticketcraft.booking.exception.SeatUnavailableException;
 import com.ticketcraft.booking.grpc.CatalogGrpcClient;
-import com.ticketcraft.booking.kafka.BookingCreatedProducer;
 import com.ticketcraft.booking.kafka.SeatStatusProducer;
 import com.ticketcraft.booking.model.Booking;
 import com.ticketcraft.booking.model.BookingStatus;
@@ -41,7 +42,7 @@ public class BookingService {
   private final SeatLockService seatLockService;
   private final CatalogGrpcClient catalogGrpcClient;
   private final SeatStatusProducer seatStatusProducer;
-  private final BookingCreatedProducer bookingCreatedProducer;
+  private final PaymentClient paymentClient;
   private final PaymentTokenizer paymentTokenizer;
 
   @Value("${booking.cart-expiry-minutes:10}")
@@ -66,7 +67,7 @@ public class BookingService {
     // 2. Try acquiring distributed locks
     boolean locksAcquired = seatLockService.acquireLocks(sortedSeatIds);
     if (!locksAcquired) {
-      throw new SeatUnavailableException("One or more seats are already locked or sold");
+      throw new SeatUnavailableException("One or more seats are currently locked by another user");
     }
 
     try {
@@ -129,15 +130,7 @@ public class BookingService {
       seatStatusProducer.sendSeatStatusChanged(event);
 
       // 7. Return Response
-      return BookingResponse.builder()
-          .bookingId(savedBooking.getId())
-          .eventId(savedBooking.getEventId())
-          .status(savedBooking.getStatus())
-          .seats(seatResponses)
-          .totalPrice(savedBooking.getTotalPrice())
-          .createdAt(savedBooking.getCreatedAt())
-          .expiresAt(savedBooking.getExpiresAt())
-          .build();
+      return mapToBookingResponse(savedBooking);
 
     } catch (Exception e) {
       // If any exception occurs (like gRPC failure or DB failure), release locks
@@ -147,7 +140,7 @@ public class BookingService {
   }
 
   @Transactional
-  public void initiateCheckout(UUID bookingId, CheckoutRequest request, String userId) {
+  public BookingResponse initiateCheckout(UUID bookingId, CheckoutRequest request, String userId) {
     Booking booking = bookingRepository.findById(bookingId)
         .orElseThrow(() -> new InvalidBookingRequestException("Booking not found"));
 
@@ -166,17 +159,71 @@ public class BookingService {
     // Tokenize payment details (PCI boundary)
     String paymentToken = paymentTokenizer.tokenize(request.getCardNumber());
 
-    // Publish BookingCreatedEvent to trigger payment processing
-    BookingCreatedEvent event = BookingCreatedEvent.builder()
-        .bookingId(bookingId.toString())
-        .totalPrice(booking.getTotalPrice().toString())
-        .paymentToken(paymentToken)
-        .userId(userId)
-        .eventId(booking.getEventId())
-        .timestamp(Instant.now().toString())
-        .build();
-    
-    bookingCreatedProducer.sendBookingCreated(event);
+    // Make synchronous call to Payment Service
+    PaymentResponse paymentResponse;
+    try {
+      paymentResponse = paymentClient.processPayment(PaymentRequest.builder()
+          .bookingId(bookingId)
+          .amount(booking.getTotalPrice())
+          .paymentToken(paymentToken)
+          .build());
+    } catch (Exception e) {
+      // Treat network errors/500s as a failure for now
+      log.error("Payment service call failed for booking {}", bookingId, e);
+      paymentResponse = PaymentResponse.builder()
+          .status("FAILED")
+          .failureReason("Payment service unavailable")
+          .build();
+    }
+
+    List<Long> seatIds = booking.getReservedSeats().stream()
+        .map(ReservedSeat::getSeatId)
+        .collect(Collectors.toList());
+
+    if ("SUCCESS".equals(paymentResponse.getStatus())) {
+      booking.setStatus(BookingStatus.CONFIRMED);
+      booking.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+      
+      // Release Redisson locks
+      seatLockService.releaseLocksByIds(seatIds);
+      
+      // Publish to Kafka: seat-status-changed (SOLD)
+      SeatStatusChangedEvent event = SeatStatusChangedEvent.builder()
+          .eventId(booking.getEventId())
+          .seatIds(seatIds)
+          .newStatus("SOLD")
+          .bookingId(bookingId.toString())
+          .timestamp(Instant.now().toString())
+          .build();
+      seatStatusProducer.sendSeatStatusChanged(event);
+      
+      Booking savedBooking = bookingRepository.save(booking);
+      return mapToBookingResponse(savedBooking);
+
+    } else {
+      booking.setStatus(BookingStatus.CANCELLED);
+      booking.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+      
+      // Delete reserved seats (orphan removal handles this when cleared)
+      booking.getReservedSeats().clear();
+      
+      // Release Redisson locks
+      seatLockService.releaseLocksByIds(seatIds);
+      
+      // Publish to Kafka: seat-status-changed (AVAILABLE)
+      SeatStatusChangedEvent event = SeatStatusChangedEvent.builder()
+          .eventId(booking.getEventId())
+          .seatIds(seatIds)
+          .newStatus("AVAILABLE")
+          .bookingId(bookingId.toString())
+          .timestamp(Instant.now().toString())
+          .build();
+      seatStatusProducer.sendSeatStatusChanged(event);
+      
+      bookingRepository.save(booking);
+      
+      throw new InvalidBookingRequestException("Payment Declined: " + paymentResponse.getFailureReason());
+    }
   }
 
   public BookingResponse getBookingStatus(UUID bookingId, String userId) {
@@ -187,6 +234,10 @@ public class BookingService {
       throw new InvalidBookingRequestException("Booking does not belong to user");
     }
 
+    return mapToBookingResponse(booking);
+  }
+  
+  private BookingResponse mapToBookingResponse(Booking booking) {
     List<SeatResponse> seatResponses = booking.getReservedSeats().stream()
         .map(seat -> new SeatResponse(
             seat.getSeatId(), seat.getSeatNumber(), seat.getRowNumber(), seat.getSection(), seat.getPrice()))
