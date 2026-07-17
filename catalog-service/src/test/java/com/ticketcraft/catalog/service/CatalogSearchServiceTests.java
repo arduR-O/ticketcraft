@@ -3,7 +3,10 @@ package com.ticketcraft.catalog.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+import com.ticketcraft.catalog.dto.EventResponse;
+import com.ticketcraft.catalog.model.Artist;
 import com.ticketcraft.catalog.model.Event;
+import com.ticketcraft.catalog.model.Venue;
 import com.ticketcraft.catalog.repository.EventRepository;
 import com.ticketcraft.catalog.repository.SeatRepository;
 import java.util.List;
@@ -15,10 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-
-import com.ticketcraft.catalog.dto.EventResponse;
-import com.ticketcraft.catalog.model.Artist;
-import com.ticketcraft.catalog.model.Venue;
 
 @ExtendWith(MockitoExtension.class)
 class CatalogSearchServiceTests {
@@ -82,5 +81,62 @@ class CatalogSearchServiceTests {
 
     assertThat(results).hasSize(1);
     verify(eventRepository, times(1)).searchEvents("Queen & Wembley!", pageable);
+  }
+
+  @Test
+  void getEventDetail_shouldReturnAggregatedDetails() {
+    Artist artist = Artist.builder().name("Queen").build();
+    Venue venue =
+        Venue.builder()
+            .name("Wembley Stadium")
+            .location("London")
+            .latitude(51.556)
+            .longitude(-0.2795)
+            .build();
+    Event event =
+        Event.builder()
+            .id(1001L)
+            .title("Queen Live at Wembley")
+            .description("Magic Tour")
+            .artist(artist)
+            .venue(venue)
+            .build();
+
+    com.ticketcraft.catalog.model.Seat seat1 =
+        com.ticketcraft.catalog.model.Seat.builder()
+            .id(104L)
+            .seatNumber("4")
+            .rowNumber("A")
+            .section("VIP")
+            .category(com.ticketcraft.catalog.model.SeatCategory.VIP)
+            .status(com.ticketcraft.catalog.model.SeatStatus.AVAILABLE)
+            .price(java.math.BigDecimal.valueOf(150.00))
+            .event(event)
+            .build();
+
+    com.ticketcraft.catalog.model.Seat seat2 =
+        com.ticketcraft.catalog.model.Seat.builder()
+            .id(105L)
+            .seatNumber("5")
+            .rowNumber("A")
+            .section("VIP")
+            .category(com.ticketcraft.catalog.model.SeatCategory.VIP)
+            .status(com.ticketcraft.catalog.model.SeatStatus.LOCKED)
+            .price(java.math.BigDecimal.valueOf(150.00))
+            .event(event)
+            .build();
+
+    when(eventRepository.findById(1001L)).thenReturn(java.util.Optional.of(event));
+    when(seatRepository.findByEventId(1001L)).thenReturn(List.of(seat1, seat2));
+
+    com.ticketcraft.catalog.dto.EventDetailResponse details =
+        catalogSearchService.getEventDetail(1001L);
+
+    assertThat(details.id()).isEqualTo(1001L);
+    assertThat(details.title()).isEqualTo("Queen Live at Wembley");
+    assertThat(details.totalSeats()).isEqualTo(2);
+    assertThat(details.availableSeats()).isEqualTo(1);
+    assertThat(details.venueLatitude()).isEqualTo(51.556);
+    assertThat(details.pricingTiers()).containsEntry("VIP", java.math.BigDecimal.valueOf(150.00));
   }
 }

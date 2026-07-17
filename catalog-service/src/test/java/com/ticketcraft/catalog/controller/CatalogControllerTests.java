@@ -51,4 +51,33 @@ class CatalogControllerTests {
         .andExpect(jsonPath("$[0].id").value(1))
         .andExpect(jsonPath("$[0].title").value("Queen Live at Wembley"));
   }
+
+  @Test
+  void getEventDetail_shouldReturnFullEventDetails() throws Exception {
+    com.ticketcraft.catalog.dto.EventDetailResponse detail =
+        new com.ticketcraft.catalog.dto.EventDetailResponse(
+            1001L,
+            "Queen Live at Wembley",
+            "Magic Tour",
+            LocalDateTime.now(),
+            "Queen",
+            "Wembley Stadium",
+            "London",
+            51.556,
+            -0.2795,
+            100L,
+            87L,
+            java.util.Map.of("VIP", java.math.BigDecimal.valueOf(150.00)));
+
+    when(catalogSearchService.getEventDetail(eq(1001L))).thenReturn(detail);
+
+    mockMvc
+        .perform(get("/api/events/1001").contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(1001))
+        .andExpect(jsonPath("$.title").value("Queen Live at Wembley"))
+        .andExpect(jsonPath("$.venueLatitude").value(51.556))
+        .andExpect(jsonPath("$.availableSeats").value(87))
+        .andExpect(jsonPath("$.pricingTiers.VIP").value(150.00));
+  }
 }

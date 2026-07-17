@@ -75,7 +75,7 @@ class CatalogRepositoryTests {
   }
 
   @ParameterizedTest
-  @CsvSource({"VIP, AVAILABLE", "STANDARD, RESERVED", "BALCONY, SOLD"})
+  @CsvSource({"VIP, AVAILABLE", "STANDARD, LOCKED", "BALCONY, SOLD"})
   void shouldSaveSeatWithVariousCategoriesAndStatuses(SeatCategory category, SeatStatus status) {
 
     Artist artist = artistRepository.save(Artist.builder().name("Queen").build());

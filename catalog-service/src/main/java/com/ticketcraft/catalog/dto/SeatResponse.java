@@ -14,5 +14,4 @@ public record SeatResponse(
     SeatCategory category,
     SeatStatus status,
     BigDecimal price,
-    Long eventId
-) {}
+    Long eventId) {}

@@ -13,4 +13,11 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
 
   @Query("SELECT s FROM Seat s JOIN FETCH s.event WHERE s.id IN :ids")
   List<Seat> findAllByIdWithEvent(@Param("ids") Iterable<Long> ids);
+
+  @org.springframework.data.jpa.repository.Modifying
+  @Query("UPDATE Seat s SET s.status = :status WHERE s.id IN :ids AND s.event.id = :eventId")
+  int updateSeatStatus(
+      @Param("ids") List<Long> ids,
+      @Param("eventId") Long eventId,
+      @Param("status") com.ticketcraft.catalog.model.SeatStatus status);
 }

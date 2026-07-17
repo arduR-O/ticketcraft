@@ -33,4 +33,12 @@ public class CatalogController {
     List<SeatResponse> seats = catalogSearchService.getSeatsForEvent(id);
     return ResponseEntity.ok(seats);
   }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<com.ticketcraft.catalog.dto.EventDetailResponse> getEventDetail(
+      @PathVariable("id") Long id) {
+    com.ticketcraft.catalog.dto.EventDetailResponse eventDetail =
+        catalogSearchService.getEventDetail(id);
+    return ResponseEntity.ok(eventDetail);
+  }
 }

@@ -9,5 +9,4 @@ public record EventResponse(
     LocalDateTime date,
     String artistName,
     String venueName,
-    String venueLocation
-) {}
+    String venueLocation) {}
