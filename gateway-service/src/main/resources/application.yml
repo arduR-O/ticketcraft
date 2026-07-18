@@ -80,7 +80,7 @@ spring:
         - id: catalog-search
           uri: lb://catalog-service
           predicates:
-            - Path=/api/v1/events/search
+            - Path=/api/v1/events/search,/api/v1/events/nearby
           filters:
             - RewritePath=/api/v1/(?<segment>.*), /api/$\{segment}
             - name: RequestRateLimiter

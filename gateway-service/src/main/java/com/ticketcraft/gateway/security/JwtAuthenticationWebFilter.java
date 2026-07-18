@@ -33,6 +33,7 @@ public class JwtAuthenticationWebFilter implements WebFilter {
     // Skip public routes and auth endpoints
     if (path.startsWith("/api/v1/auth")
         || path.equals("/api/v1/events/search")
+        || path.equals("/api/v1/events/nearby")
         || path.matches("/api/v1/events/\\d+")
         || path.matches("/api/v1/events/\\d+/seat-stream")
         || path.startsWith("/login")

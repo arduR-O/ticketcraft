@@ -10,3 +10,7 @@ When working on this codebase, always adhere to the following rules:
 5. **Detailed Walkthroughs & Committing**: When completing a phase or major task, always write a detailed walkthrough in a separate markdown file in the `notes/` directory (e.g., `notes/walkthrough_phase_4.md`) that includes both the **general flow** and **file-by-file changes**. Crucially, format all file paths as standard relative markdown links (e.g., `[booking-service/pom.xml](../booking-service/pom.xml)`) so they can be followed via `gx` in Vim. After verifying the implementation, always `git commit` and `git push` to remote to persist the milestone.
 6. **Codebase Readability**: Add docstrings to all functions in the codebase. Crucially, these docstrings must explain **"why"** the function does what it does, rather than just **"what"** it does, to preserve architectural intent.
 </RULE[ticketcraft_architecture]>
+
+<RULE[frontend_contract]>
+7. **Frontend Design Driven by Backend Contracts**: When creating the frontend, explicitly look at what the server requires (e.g., specific headers, exact query params, and required authentication/authorization tokens) and returns (the exact DTOs), and design the frontend implementation accordingly. Do not assume endpoint shapes or auth requirements without verifying the backend controllers and gateway security configs.
+</RULE[frontend_contract]>

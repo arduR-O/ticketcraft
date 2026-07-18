@@ -97,6 +97,24 @@ public class QueueController {
             });
   }
 
+  /**
+   * Endpoint to attempt bypassing the queue.
+   * 
+   * What: If the queue is inactive/empty, returns a pass token immediately.
+   * 
+   * Why: Simplifies frontend logic; the frontend always asks for a pass first.
+   * 
+   * @return 200 OK with passToken, or 409 Conflict if the queue is active.
+   */
+  @GetMapping("/{eventId}/pass")
+  public Mono<ResponseEntity<Map<String, String>>> getFastTrackPass(
+      @PathVariable @NotBlank(message = "eventId must not be blank") String eventId,
+      @RequestHeader("X-User-Id") @NotBlank(message = "userId must not be blank") String userId) {
+    return queueService.attemptFastTrack(eventId, userId)
+        .map(passToken -> ResponseEntity.ok(Map.of("passToken", passToken)))
+        .defaultIfEmpty(ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Queue is currently active")));
+  }
+
   private Mono<ServerSentEvent<QueueStatus>> checkStatus(String eventId, String userId) {
     return queueService
         .getPromotionPass(eventId, userId)

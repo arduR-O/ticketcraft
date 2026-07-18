@@ -58,6 +58,33 @@ public class CatalogSearchService {
   }
 
   /**
+   * Searches for events ordered by proximity to a given location.
+   * 
+   * What: Executes a native query with the Haversine formula to sort by distance.
+   * 
+   * Why: Used by the frontend homepage to show events near the user's physical location.
+   * 
+   * @param lat The user's latitude.
+   * @param lng The user's longitude.
+   * @param pageable Pagination and sorting configuration.
+   * @return A list of matching EventResponse DTOs ordered by distance.
+   */
+  public List<EventResponse> findNearbyEvents(double lat, double lng, Pageable pageable) {
+    return eventRepository.findNearbyEvents(lat, lng, pageable).stream()
+        .map(
+            event ->
+                new EventResponse(
+                    event.getId(),
+                    event.getTitle(),
+                    event.getDescription(),
+                    event.getDate(),
+                    event.getArtist().getName(),
+                    event.getVenue().getName(),
+                    event.getVenue().getLocation()))
+        .toList();
+  }
+
+  /**
    * Retrieves the full list of seats for a specific event.
    * 
    * What: Validates the event exists, fetches all seats linked to it, and maps them to SeatResponse DTOs.

@@ -54,6 +54,30 @@ public class CatalogController {
   }
 
   /**
+   * Endpoint for paginated nearby event search.
+   * 
+   * What: Accepts lat/lng and a page number, returning a list of events ordered by distance.
+   * 
+   * Why: Used by the frontend homepage to show events near the user's physical location.
+   * 
+   * @param lat The user's latitude.
+   * @param lng The user's longitude.
+   * @param page The page number (0-indexed).
+   * @return A list of events on the given page.
+   */
+  @GetMapping("/nearby")
+  public ResponseEntity<List<EventResponse>> getNearbyEvents(
+      @RequestParam("lat") double lat,
+      @RequestParam("lng") double lng,
+      @RequestParam(value = "page", defaultValue = "0")
+          @Min(value = 0, message = "Page number must be >= 0")
+          int page) {
+    Pageable pageable = PageRequest.of(page, PAGE_SIZE);
+    List<EventResponse> events = catalogSearchService.findNearbyEvents(lat, lng, pageable);
+    return ResponseEntity.ok(events);
+  }
+
+  /**
    * Endpoint for fetching the initial seat map for an event.
    * 
    * What: Retrieves all seats associated with the given event ID.

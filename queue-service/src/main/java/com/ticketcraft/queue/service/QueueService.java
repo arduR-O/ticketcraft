@@ -150,6 +150,36 @@ public class QueueService {
         .defaultIfEmpty(false);
   }
 
+  /**
+   * Attempts to issue a queue pass immediately without making the user wait.
+   * 
+   * What: Checks if the waitlist is empty and the active sessions are below the maximum.
+   * If both are true, the user is directly inserted into the active sessions and receives a pass.
+   * 
+   * Why: Prevents the overhead of SSE connections for events that have no active queue.
+   */
+  public Mono<String> attemptFastTrack(String eventId, String userId) {
+    String waitlistKey = getWaitlistKey(eventId);
+    String activeSessionsKey = getActiveSessionsKey(eventId);
+    String heartbeatsKey = getHeartbeatsKey(eventId);
+    long now = Instant.now().toEpochMilli();
+
+    return redisTemplate.opsForZSet().size(waitlistKey)
+        .defaultIfEmpty(0L)
+        .zipWith(redisTemplate.opsForZSet().size(activeSessionsKey).defaultIfEmpty(0L))
+        .flatMap(tuple -> {
+          long waitlistSize = tuple.getT1();
+          long activeSize = tuple.getT2();
+
+          if (waitlistSize == 0 && activeSize < maxActiveSessions) {
+            return redisTemplate.opsForZSet().add(activeSessionsKey, userId, (double) now)
+                .then(redisTemplate.opsForZSet().add(heartbeatsKey, userId, (double) now))
+                .then(Mono.just(generatePassToken(userId, eventId)));
+          }
+          return Mono.empty();
+        });
+  }
+
   public Flux<String> getActiveEventQueues() {
     return redisTemplate.opsForSet().members("active_event_queues");
   }
