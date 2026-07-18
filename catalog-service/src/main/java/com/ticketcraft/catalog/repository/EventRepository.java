@@ -13,17 +13,24 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
   @Query(
       value =
-          "SELECT * FROM events WHERE search_vector @@ REPLACE(plainto_tsquery('english',"
-              + " :query)::text, '&', '|')::tsquery ORDER BY ts_rank(search_vector,"
-              + " REPLACE(plainto_tsquery('english', :query)::text, '&', '|')::tsquery) DESC",
+          "SELECT e.id as id, e.title as title, e.description as description, e.date as date, "
+              + "a.name as artistName, v.name as venueName, v.location as venueLocation "
+              + "FROM events e "
+              + "JOIN artists a ON e.artist_id = a.id "
+              + "JOIN venues v ON e.venue_id = v.id "
+              + "WHERE e.search_vector @@ REPLACE(plainto_tsquery('english', :query)::text, '&', '|')::tsquery "
+              + "ORDER BY ts_rank(e.search_vector, REPLACE(plainto_tsquery('english', :query)::text, '&', '|')::tsquery) DESC",
       nativeQuery = true)
-  List<Event> searchEvents(@Param("query") String query, Pageable pageable);
+  List<EventSummaryProjection> searchEvents(@Param("query") String query, Pageable pageable);
 
   @Query(
       value =
-          "SELECT e.* FROM events e "
+          "SELECT e.id as id, e.title as title, e.description as description, e.date as date, "
+              + "a.name as artistName, v.name as venueName, v.location as venueLocation "
+              + "FROM events e "
+              + "JOIN artists a ON e.artist_id = a.id "
               + "JOIN venues v ON e.venue_id = v.id "
               + "ORDER BY (6371 * acos(cos(radians(:lat)) * cos(radians(v.latitude)) * cos(radians(v.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(v.latitude)))) ASC",
       nativeQuery = true)
-  List<Event> findNearbyEvents(@Param("lat") double lat, @Param("lng") double lng, Pageable pageable);
+  List<EventSummaryProjection> findNearbyEvents(@Param("lat") double lat, @Param("lng") double lng, Pageable pageable);
 }

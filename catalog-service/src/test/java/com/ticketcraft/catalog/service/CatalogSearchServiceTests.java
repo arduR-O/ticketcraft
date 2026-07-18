@@ -26,19 +26,19 @@ class CatalogSearchServiceTests {
   @Mock private SeatRepository seatRepository;
   @InjectMocks private CatalogSearchService catalogSearchService;
 
-  private Event testEvent;
+  private com.ticketcraft.catalog.repository.EventSummaryProjection testProjection;
   private Pageable pageable;
 
   @BeforeEach
   void setUp() {
-    testEvent =
-        Event.builder()
-            .id(1L)
-            .title("Queen Live at Wembley")
-            .description("Magic Tour")
-            .artist(Artist.builder().name("Queen").build())
-            .venue(Venue.builder().name("Wembley Stadium").location("London").build())
-            .build();
+    testProjection = mock(com.ticketcraft.catalog.repository.EventSummaryProjection.class);
+    lenient().when(testProjection.getId()).thenReturn(1L);
+    lenient().when(testProjection.getTitle()).thenReturn("Queen Live at Wembley");
+    lenient().when(testProjection.getDescription()).thenReturn("Magic Tour");
+    lenient().when(testProjection.getArtistName()).thenReturn("Queen");
+    lenient().when(testProjection.getVenueName()).thenReturn("Wembley Stadium");
+    lenient().when(testProjection.getVenueLocation()).thenReturn("London");
+
     pageable = PageRequest.of(0, 20);
   }
 
@@ -62,7 +62,7 @@ class CatalogSearchServiceTests {
 
   @Test
   void searchEvents_withQuery_shouldCallSearchRepository() {
-    when(eventRepository.searchEvents("Queen", pageable)).thenReturn(List.of(testEvent));
+    when(eventRepository.searchEvents("Queen", pageable)).thenReturn(List.of(testProjection));
 
     List<EventResponse> results = catalogSearchService.searchEvents("Queen", pageable);
 
@@ -75,7 +75,7 @@ class CatalogSearchServiceTests {
 
   @Test
   void searchEvents_shouldPassRawQueryToRepository() {
-    when(eventRepository.searchEvents("Queen & Wembley!", pageable)).thenReturn(List.of(testEvent));
+    when(eventRepository.searchEvents("Queen & Wembley!", pageable)).thenReturn(List.of(testProjection));
 
     List<EventResponse> results = catalogSearchService.searchEvents("Queen & Wembley!", pageable);
 

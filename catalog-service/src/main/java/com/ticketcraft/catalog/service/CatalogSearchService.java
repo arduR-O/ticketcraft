@@ -45,15 +45,15 @@ public class CatalogSearchService {
     }
     return eventRepository.searchEvents(query, pageable).stream()
         .map(
-            event ->
+            projection ->
                 new EventResponse(
-                    event.getId(),
-                    event.getTitle(),
-                    event.getDescription(),
-                    event.getDate(),
-                    event.getArtist().getName(),
-                    event.getVenue().getName(),
-                    event.getVenue().getLocation()))
+                    projection.getId(),
+                    projection.getTitle(),
+                    projection.getDescription(),
+                    projection.getDate(),
+                    projection.getArtistName(),
+                    projection.getVenueName(),
+                    projection.getVenueLocation()))
         .toList();
   }
 
@@ -72,15 +72,15 @@ public class CatalogSearchService {
   public List<EventResponse> findNearbyEvents(double lat, double lng, Pageable pageable) {
     return eventRepository.findNearbyEvents(lat, lng, pageable).stream()
         .map(
-            event ->
+            projection ->
                 new EventResponse(
-                    event.getId(),
-                    event.getTitle(),
-                    event.getDescription(),
-                    event.getDate(),
-                    event.getArtist().getName(),
-                    event.getVenue().getName(),
-                    event.getVenue().getLocation()))
+                    projection.getId(),
+                    projection.getTitle(),
+                    projection.getDescription(),
+                    projection.getDate(),
+                    projection.getArtistName(),
+                    projection.getVenueName(),
+                    projection.getVenueLocation()))
         .toList();
   }
 
