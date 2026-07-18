@@ -1,2 +1,5 @@
 CREATE DATABASE catalog_db;
 CREATE DATABASE booking_db;
+CREATE DATABASE gateway_db;
+CREATE DATABASE queue_db;
+CREATE DATABASE payment_db;

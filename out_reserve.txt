@@ -1,0 +1,1 @@
+{"bookingId":"c259262c-fa4e-454e-b4c8-d403e1774463","eventId":1,"status":"PENDING","seats":[{"seatId":2,"seatNumber":"S2","rowNumber":"A","section":"101","price":150.00},{"seatId":1,"seatNumber":"S1","rowNumber":"A","section":"101","price":150.00}],"totalPrice":300.00,"createdAt":"2026-07-18T18:32:17.256439","expiresAt":"2026-07-18T13:12:17.217131841"}

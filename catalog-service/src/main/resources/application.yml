@@ -22,6 +22,17 @@ spring:
         format_sql: true
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: catalog-seat-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.ticketcraft.*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.ticketcraft.catalog.dto.SeatStatusEvent
   data:
     redis:
       host: localhost
@@ -35,12 +46,3 @@ eureka:
   instance:
     prefer-ip-address: true
 
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: catalog-seat-consumer
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "com.ticketcraft.*"

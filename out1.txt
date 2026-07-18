@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+Set-Cookie: refreshToken=89fbcd7d-c009-40da-9153-1ba148834703; Path=/api/v1/auth; Max-Age=604800; Expires=Sat, 25 Jul 2026 13:02:13 GMT; HttpOnly; SameSite=Strict
+Content-Type: application/json
+Content-Length: 335
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 0
+Referrer-Policy: no-referrer
+
+{"accessToken":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5NDMyYjBiMy1hNmRmLTRlNGEtYWViOC03ZjBmNDQ1NjY1MWYiLCJlbWFpbCI6InRlc3RfdXNlcl8xQGV4YW1wbGUuY29tIiwicm9sZSI6IlVTRVIiLCJ0eXBlIjoiYWNjZXNzIiwianRpIjoiMDk5ZmM3YWEtZGMwYS00OTljLWJmYzktODdlM2EyNWJiZGVjIiwiaWF0IjoxNzg0Mzc5NzMzLCJleHAiOjE3ODQzODA2MzN9.-oX_9K2EI6Ovh-k2BOguinaYixpE1K8t2TCzWrvxRRo"}

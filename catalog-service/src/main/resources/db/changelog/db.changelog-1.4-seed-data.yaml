@@ -47,6 +47,7 @@ databaseChangeLog:
                   valueComputed: "(SELECT id FROM venues WHERE name = 'Wembley Stadium' LIMIT 1)"
         - sql:
             dbms: postgresql
+            splitStatements: false
             sql: |
               DO $$ 
               DECLARE
