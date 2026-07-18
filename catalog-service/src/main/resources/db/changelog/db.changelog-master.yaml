@@ -11,3 +11,5 @@ databaseChangeLog:
       file: db/changelog/db.changelog-1.4-seed-data.yaml
   - include:
       file: db/changelog/db.changelog-1.5-seat-visual-hierarchy.yaml
+  - include:
+      file: db/changelog/db.changelog-1.6-more-seed-data.yaml

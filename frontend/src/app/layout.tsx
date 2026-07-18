@@ -35,22 +35,11 @@ export default function RootLayout({
 
               {/* Navigation Links */}
               <nav className="hidden md:flex space-x-8">
-                <Link href="/" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
-                  Concerts
-                </Link>
-                <Link href="/" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
-                  Sports
-                </Link>
-                <Link href="/" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
-                  Arts & Theater
-                </Link>
+                {/* Simplified Navbar */}
               </nav>
 
               {/* Right side buttons */}
               <div className="flex items-center space-x-4">
-                <button className="text-gray-600 hover:text-blue-600 font-medium hidden sm:block">
-                  Sell
-                </button>
                 <button className="text-gray-600 hover:text-blue-600 font-medium">
                   Sign In
                 </button>

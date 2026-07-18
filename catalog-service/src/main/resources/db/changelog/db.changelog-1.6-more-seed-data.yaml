@@ -1,0 +1,127 @@
+databaseChangeLog:
+  - changeSet:
+      id: more-seed-dummy-data
+      author: arduR-O
+      changes:
+        - insert:
+            tableName: artists
+            columns:
+              - column:
+                  name: name
+                  value: "Coldplay"
+              - column:
+                  name: genre
+                  value: "Pop Rock"
+              - column:
+                  name: description
+                  value: "British rock band formed in London in 1997."
+        - insert:
+            tableName: venues
+            columns:
+              - column:
+                  name: name
+                  value: "Madison Square Garden"
+              - column:
+                  name: location
+                  value: "New York, USA"
+              - column:
+                  name: capacity
+                  value: 19500
+              - column:
+                  name: latitude
+                  value: 40.7505
+              - column:
+                  name: longitude
+                  value: -73.9934
+        - insert:
+            tableName: events
+            columns:
+              - column:
+                  name: title
+                  value: "Coldplay Music of the Spheres"
+              - column:
+                  name: description
+                  value: "The world tour."
+              - column:
+                  name: date
+                  value: "2026-08-15T20:00:00"
+              - column:
+                  name: artist_id
+                  valueComputed: "(SELECT id FROM artists WHERE name = 'Coldplay' LIMIT 1)"
+              - column:
+                  name: venue_id
+                  valueComputed: "(SELECT id FROM venues WHERE name = 'Madison Square Garden' LIMIT 1)"
+        
+        - insert:
+            tableName: artists
+            columns:
+              - column:
+                  name: name
+                  value: "Taylor Swift"
+              - column:
+                  name: genre
+                  value: "Pop"
+              - column:
+                  name: description
+                  value: "American singer-songwriter."
+        - insert:
+            tableName: venues
+            columns:
+              - column:
+                  name: name
+                  value: "SoFi Stadium"
+              - column:
+                  name: location
+                  value: "Inglewood, USA"
+              - column:
+                  name: capacity
+                  value: 70240
+              - column:
+                  name: latitude
+                  value: 33.9534
+              - column:
+                  name: longitude
+                  value: -118.3387
+        - insert:
+            tableName: events
+            columns:
+              - column:
+                  name: title
+                  value: "Taylor Swift Eras Tour"
+              - column:
+                  name: description
+                  value: "The ultimate eras tour."
+              - column:
+                  name: date
+                  value: "2026-09-01T19:30:00"
+              - column:
+                  name: artist_id
+                  valueComputed: "(SELECT id FROM artists WHERE name = 'Taylor Swift' LIMIT 1)"
+              - column:
+                  name: venue_id
+                  valueComputed: "(SELECT id FROM venues WHERE name = 'SoFi Stadium' LIMIT 1)"
+
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              DO $$ 
+              DECLARE
+                v_event_id BIGINT;
+                i INT;
+              BEGIN
+                SELECT id INTO v_event_id FROM events WHERE title = 'Coldplay Music of the Spheres' LIMIT 1;
+                FOR i IN 1..50 LOOP
+                  INSERT INTO seats (seat_number, row_number, section, category, status, price, event_id)
+                  VALUES ('S' || i, 'A', '101', 'STANDARD', 'AVAILABLE', 200.00, v_event_id);
+                END LOOP;
+                
+                SELECT id INTO v_event_id FROM events WHERE title = 'Taylor Swift Eras Tour' LIMIT 1;
+                FOR i IN 1..50 LOOP
+                  INSERT INTO seats (seat_number, row_number, section, category, status, price, event_id)
+                  VALUES ('S' || i, 'A', '101', 'STANDARD', 'AVAILABLE', 500.00, v_event_id);
+                END LOOP;
+                
+                -- Update original Queen venue with latitude/longitude since it might be missing
+                UPDATE venues SET latitude = 51.556, longitude = -0.2795 WHERE name = 'Wembley Stadium';
+              END $$;

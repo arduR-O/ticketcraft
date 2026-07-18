@@ -17,7 +17,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search by artist, ev
         type="text"
         value={value}
         onChange={onChange}
-        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-full leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-lg transition-colors"
+        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-full leading-5 bg-white text-gray-900 font-medium placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-lg transition-colors"
         placeholder={placeholder}
       />
     </div>
