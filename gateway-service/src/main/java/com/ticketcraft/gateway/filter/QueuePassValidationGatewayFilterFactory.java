@@ -30,6 +30,10 @@ import reactor.core.publisher.Mono;
 public class QueuePassValidationGatewayFilterFactory
     extends AbstractGatewayFilterFactory<QueuePassValidationGatewayFilterFactory.Config> {
 
+  public static final String USER_ID_HEADER = "X-User-Id";
+  public static final String QUEUE_PASS_HEADER = "X-Queue-Pass";
+  public static final String QUEUE_EVENT_ID_HEADER = "X-Queue-Event-Id";
+
   private final SecretKey key;
   private final JwtParser jwtParser;
   private final ReactiveStringRedisTemplate redisTemplate;
@@ -55,8 +59,8 @@ public class QueuePassValidationGatewayFilterFactory
       ServerHttpRequest request = exchange.getRequest();
       String path = request.getPath().value();
 
-      // Only check bypass for seatmap path. Bookings must always have valid userId/queue pass.
-      if (path.contains("/seatmap")) {
+      // Seat reads can bypass the pass when no queue is active. Writes must always validate.
+      if (path.contains("/seatmap") || path.contains("/seat-stream")) {
         String eventId = extractEventIdFromPath(path);
         if (eventId != null) {
           String activeSessionsKey = "{" + eventId + "}:active_sessions";
@@ -97,7 +101,10 @@ public class QueuePassValidationGatewayFilterFactory
       ServerWebExchange exchange,
       org.springframework.cloud.gateway.filter.GatewayFilterChain chain) {
     ServerHttpRequest request = exchange.getRequest();
-    String queuePass = request.getHeaders().getFirst("X-Queue-Pass");
+    String queuePass = request.getHeaders().getFirst(QUEUE_PASS_HEADER);
+    if (queuePass == null || queuePass.isEmpty()) {
+      queuePass = request.getQueryParams().getFirst("queue_pass");
+    }
 
     if (queuePass == null || queuePass.isEmpty()) {
       log.warn("Access denied: Missing X-Queue-Pass header");
@@ -136,8 +143,22 @@ public class QueuePassValidationGatewayFilterFactory
         return onError(exchange, "Invalid queue pass subject", HttpStatus.FORBIDDEN);
       }
 
+      String authenticatedUserId = request.getHeaders().getFirst(USER_ID_HEADER);
+      if (authenticatedUserId != null && !authenticatedUserId.equals(userId)) {
+        log.warn(
+            "Access denied: Queue pass subject does not match authenticated user. authUser={},"
+                + " passUser={}",
+            authenticatedUserId,
+            userId);
+        return onError(exchange, "Queue pass subject mismatch", HttpStatus.FORBIDDEN);
+      }
+
       ServerHttpRequest mutatedRequest =
-          request.mutate().header("X-Validated-UserId", userId).build();
+          request
+              .mutate()
+              .header(USER_ID_HEADER, userId)
+              .header(QUEUE_EVENT_ID_HEADER, eventIdFromClaim)
+              .build();
 
       return chain.filter(exchange.mutate().request(mutatedRequest).build());
 

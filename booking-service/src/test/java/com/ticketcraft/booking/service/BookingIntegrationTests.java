@@ -91,7 +91,7 @@ public class BookingIntegrationTests {
     });
 
     mockMvc.perform(post("/api/bookings")
-            .header("X-Validated-UserId", "alice")
+            .header("X-User-Id", "alice")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
@@ -122,7 +122,7 @@ public class BookingIntegrationTests {
     });
 
     MvcResult result = mockMvc.perform(post("/api/bookings")
-            .header("X-Validated-UserId", "alice")
+            .header("X-User-Id", "alice")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
@@ -154,7 +154,7 @@ public class BookingIntegrationTests {
         .thenReturn(PaymentResponse.builder().status("SUCCESS").build());
 
     mockMvc.perform(post("/api/bookings/" + bookingId + "/checkout")
-            .header("X-Validated-UserId", "alice")
+            .header("X-User-Id", "alice")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(checkoutRequest)))
         .andExpect(status().isOk())

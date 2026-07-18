@@ -9,6 +9,25 @@ spring:
       host: localhost
       port: 6379
       password: redis
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/gateway_db
+    username: postgres
+    password: postgres
+  datasource:
+    url: jdbc:postgresql://localhost:5432/gateway_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid, profile, email
   cloud:
     gateway:
       routes:
@@ -16,8 +35,9 @@ spring:
         - id: seatmap-with-pass
           uri: lb://catalog-service
           predicates:
-            - Path=/api/events/{id}/seatmap
+            - Path=/api/v1/events/{id}/seatmap
           filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/$\{segment}
             - QueuePassValidation
             - name: RequestRateLimiter
               args:
@@ -26,12 +46,29 @@ spring:
                 redis-rate-limiter.requestedTokens: 1
                 key-resolver: "#{@ipKeyResolver}"
 
-        # ── Booking Service route ──
+        # ── Queue-pass-protected booking reservation route ──
+        - id: booking-reserve-with-pass
+          uri: lb://booking-service
+          predicates:
+            - Path=/api/v1/bookings
+            - Method=POST
+          filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/$\{segment}
+            - QueuePassValidation
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+
+        # ── Authenticated booking status and checkout routes ──
         - id: booking-service
           uri: lb://booking-service
           predicates:
-            - Path=/api/bookings/**
+            - Path=/api/v1/bookings/**
           filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/$\{segment}
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 20
@@ -43,8 +80,9 @@ spring:
         - id: catalog-search
           uri: lb://catalog-service
           predicates:
-            - Path=/api/events/search
+            - Path=/api/v1/events/search
           filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/$\{segment}
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 50
@@ -55,8 +93,9 @@ spring:
         - id: catalog-event-detail
           uri: lb://catalog-service
           predicates:
-            - Path=/api/events/{id}
+            - Path=/api/v1/events/{id}
           filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/$\{segment}
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 50
@@ -68,13 +107,36 @@ spring:
         - id: catalog-seat-stream
           uri: lb://catalog-service
           predicates:
-            - Path=/api/events/{id}/seat-stream
+            - Path=/api/v1/events/{id}/seat-stream
+          filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/$\{segment}
+            - QueuePassValidation
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
 
         # ── Queue Service route ──
         - id: queue-service
           uri: lb://queue-service
           predicates:
-            - Path=/api/queue/**
+            - Path=/api/v1/queue/**
+          filters:
+            - RewritePath=/api/v1/(?<segment>.*), /api/$\{segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+
+        # ── Payment Service route ──
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/api/v1/payments/**
           filters:
             - name: RequestRateLimiter
               args:
@@ -100,3 +162,7 @@ queue:
   jwt:
     secret: "ticketcraft_waiting_room_secret_key_32_bytes_long_minimum!"
   max-active-sessions: 10000
+
+auth:
+  jwt:
+    secret: "ticketcraft_global_auth_secret_key_32_bytes_long_minimum!"

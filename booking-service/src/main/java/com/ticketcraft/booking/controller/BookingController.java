@@ -3,6 +3,7 @@ package com.ticketcraft.booking.controller;
 import com.ticketcraft.booking.dto.BookingRequest;
 import com.ticketcraft.booking.dto.BookingResponse;
 import com.ticketcraft.booking.dto.CheckoutRequest;
+import com.ticketcraft.booking.exception.InvalidBookingRequestException;
 import com.ticketcraft.booking.service.BookingService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 
  * Why: This controller acts as the primary external boundary for clients adding tickets
  * to their cart and finalizing their purchases. It relies on the Gateway service to inject
- * validated user identities (`X-Validated-UserId`), ensuring unauthorized users cannot spoof
+ * validated user identities (`X-User-Id`), ensuring unauthorized users cannot spoof
  * bookings for others.
  */
 @Slf4j
@@ -51,9 +52,14 @@ public class BookingController {
    */
   @PostMapping
   public ResponseEntity<BookingResponse> reserveSeats(
-      @RequestHeader(value = "X-Validated-UserId", required = false, defaultValue = "alice") String userId,
+      @RequestHeader("X-User-Id") String userId,
+      @RequestHeader(value = "X-Queue-Event-Id", required = false) String queueEventId,
       @RequestBody BookingRequest request) {
     
+    if (queueEventId != null && !queueEventId.equals(String.valueOf(request.getEventId()))) {
+      throw new InvalidBookingRequestException("Queue pass does not match requested event");
+    }
+
     log.info("User {} requesting to reserve seats for event {}: {}", userId, request.getEventId(), request.getSeatIds());
     BookingResponse response = bookingService.reserveSeats(request, userId);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -76,7 +82,7 @@ public class BookingController {
    */
   @PostMapping("/{bookingId}/checkout")
   public ResponseEntity<BookingResponse> checkout(
-      @RequestHeader(value = "X-Validated-UserId", required = false, defaultValue = "alice") String userId,
+      @RequestHeader("X-User-Id") String userId,
       @PathVariable UUID bookingId,
       @RequestBody CheckoutRequest request) {
     
@@ -99,7 +105,7 @@ public class BookingController {
    */
   @GetMapping("/{bookingId}")
   public ResponseEntity<BookingResponse> getBookingStatus(
-      @RequestHeader(value = "X-Validated-UserId", required = false, defaultValue = "alice") String userId,
+      @RequestHeader("X-User-Id") String userId,
       @PathVariable UUID bookingId) {
     
     BookingResponse response = bookingService.getBookingStatus(bookingId, userId);

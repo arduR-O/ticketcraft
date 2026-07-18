@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -54,13 +55,13 @@ public class QueueController {
    * overwhelming Redis with constant lookups.
    * 
    * @param eventId The event ID.
-   * @param userId The user ID.
+   * @param userId The user ID injected by the Gateway after access-token validation.
    * @return A Flux of ServerSentEvents containing QueueStatus.
    */
   @GetMapping(value = "/stream", produces = "text/event-stream")
   public Flux<ServerSentEvent<QueueStatus>> streamQueueUpdates(
       @RequestParam @NotBlank(message = "eventId must not be blank") String eventId,
-      @RequestParam @NotBlank(message = "userId must not be blank") String userId) {
+      @RequestHeader("X-User-Id") @NotBlank(message = "userId must not be blank") String userId) {
     return queueService
         .enqueueUser(eventId, userId)
         .thenMany(
@@ -76,13 +77,13 @@ public class QueueController {
    * The background Lua script will evict any users who haven't sent a heartbeat within the grace period.
    * 
    * @param eventId The event ID.
-   * @param userId The user ID.
+   * @param userId The user ID injected by the Gateway after access-token validation.
    * @return 200 OK if successful, 404 if user is not in the active session.
    */
   @PostMapping("/{eventId}/heartbeat")
   public Mono<ResponseEntity<Map<String, String>>> heartbeat(
       @PathVariable @NotBlank(message = "eventId must not be blank") String eventId,
-      @RequestParam @NotBlank(message = "userId must not be blank") String userId) {
+      @RequestHeader("X-User-Id") @NotBlank(message = "userId must not be blank") String userId) {
     return queueService
         .processHeartbeat(eventId, userId)
         .map(

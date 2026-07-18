@@ -109,8 +109,10 @@ public class QueuePassValidationGatewayFilterFactoryTests {
         filterFactory.apply(new QueuePassValidationGatewayFilterFactory.Config());
     GatewayFilterChain filterChain =
         (exch) -> {
-          String injectedHeader = exch.getRequest().getHeaders().getFirst("X-Validated-UserId");
+          String injectedHeader = exch.getRequest().getHeaders().getFirst("X-User-Id");
+          String injectedEventId = exch.getRequest().getHeaders().getFirst("X-Queue-Event-Id");
           assertThat(injectedHeader).isEqualTo("user123");
+          assertThat(injectedEventId).isEqualTo("1001");
           return Mono.empty();
         };
 
@@ -128,6 +130,30 @@ public class QueuePassValidationGatewayFilterFactoryTests {
     String token = createToken("user123", "9999", 60000);
     MockServerHttpRequest request =
         MockServerHttpRequest.get("/api/events/1001/seatmap").header("X-Queue-Pass", token).build();
+    MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+    GatewayFilter filter =
+        filterFactory.apply(new QueuePassValidationGatewayFilterFactory.Config());
+    GatewayFilterChain filterChain = Mockito.mock(GatewayFilterChain.class);
+    when(filterChain.filter(exchange)).thenReturn(Mono.empty());
+
+    Mono<Void> result = filter.filter(exchange, filterChain);
+
+    StepVerifier.create(result).verifyComplete();
+
+    assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+  }
+
+  @Test
+  public void shouldBlockWhenQueuePassSubjectDoesNotMatchAuthenticatedUser() {
+    when(zSetOperations.size(anyString())).thenReturn(Mono.just(10000L));
+
+    String token = createToken("user123", "1001", 60000);
+    MockServerHttpRequest request =
+        MockServerHttpRequest.get("/api/events/1001/seatmap")
+            .header("X-User-Id", "other-user")
+            .header("X-Queue-Pass", token)
+            .build();
     MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
     GatewayFilter filter =

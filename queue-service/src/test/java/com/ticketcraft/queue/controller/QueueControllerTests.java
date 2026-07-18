@@ -36,8 +36,8 @@ class QueueControllerTests {
                 uriBuilder
                     .path("/api/queue/stream")
                     .queryParam("eventId", " ")
-                    .queryParam("userId", "user123")
                     .build())
+        .header("X-User-Id", "user123")
         .exchange()
         .expectStatus()
         .isBadRequest()
@@ -58,7 +58,8 @@ class QueueControllerTests {
         .post()
         .uri(
             uriBuilder ->
-                uriBuilder.path("/api/queue/1001/heartbeat").queryParam("userId", "").build())
+                uriBuilder.path("/api/queue/1001/heartbeat").build())
+        .header("X-User-Id", "")
         .exchange()
         .expectStatus()
         .isBadRequest()
