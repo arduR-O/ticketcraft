@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.5-seat-visual-hierarchy
+      author: arduR-O
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              DO $$
+              DECLARE
+                v_event_id BIGINT;
+                i INT;
+                x_pos INT;
+              BEGIN
+                SELECT id INTO v_event_id
+                FROM events
+                WHERE title = 'Queen Live at Wembley'
+                LIMIT 1;
+
+                IF v_event_id IS NULL THEN
+                  RETURN;
+                END IF;
+
+                UPDATE venues
+                SET latitude = 51.5560,
+                    longitude = -0.2796
+                WHERE name = 'Wembley Stadium';
+
+                FOR i IN 1..50 LOOP
+                  x_pos := 80 + (((i - 1) % 10) * 48);
+
+                  IF i <= 10 THEN
+                    UPDATE seats
+                    SET section = 'Floor A',
+                        row_number = 'A',
+                        category = 'VIP',
+                        price = 300.00,
+                        x_coordinate = x_pos,
+                        y_coordinate = 90
+                    WHERE event_id = v_event_id
+                      AND seat_number = 'S' || i;
+                  ELSIF i <= 30 THEN
+                    UPDATE seats
+                    SET section = CASE WHEN i <= 20 THEN 'Lower Bowl 101' ELSE 'Lower Bowl 102' END,
+                        row_number = CASE WHEN i <= 20 THEN 'B' ELSE 'C' END,
+                        category = 'STANDARD',
+                        price = 150.00,
+                        x_coordinate = x_pos,
+                        y_coordinate = CASE WHEN i <= 20 THEN 180 ELSE 245 END
+                    WHERE event_id = v_event_id
+                      AND seat_number = 'S' || i;
+                  ELSE
+                    UPDATE seats
+                    SET section = CASE WHEN i <= 40 THEN 'Balcony 201' ELSE 'Balcony 202' END,
+                        row_number = CASE WHEN i <= 40 THEN 'D' ELSE 'E' END,
+                        category = 'BALCONY',
+                        price = 90.00,
+                        x_coordinate = x_pos,
+                        y_coordinate = CASE WHEN i <= 40 THEN 335 ELSE 400 END
+                    WHERE event_id = v_event_id
+                      AND seat_number = 'S' || i;
+                  END IF;
+                END LOOP;
+              END $$;
