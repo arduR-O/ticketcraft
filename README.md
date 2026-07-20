@@ -48,6 +48,20 @@ The system is built for the future of the web. The included `mcp-server` allows 
 
 ---
 
+## 🎥 Demos
+
+### Load Test
+*(To be added soon!)*
+
+### Frontend Demo
+*(To be added soon!)*
+
+### Autonomous AI Agent (MCP) Demo
+Read the transcript of Claude Desktop autonomously searching for an event, analyzing the seatmap, picking seats, reserving them, and executing a checkout across the microservice cluster:
+[🔗 Read the Claude Chat Transcript](https://claude.ai/share/5654a7e0-8c77-473d-97b0-383ddc265f3d)
+
+---
+
 ## 🚀 Running the Platform Locally
 
 To experience the platform, follow these steps to boot the cluster on your local machine.
@@ -83,7 +97,7 @@ npm run dev
 1. Open `http://localhost:3000` in your browser.
 2. Sign in using the mock Google OAuth button.
 3. Search for "Queen" or "Coldplay".
-4. Enter the Virtual Waiting Room (simulated).
+4. Enter the Virtual Waiting Room (simulated, only if you log in from second account while first one is viewing the seatmap).
 5. Watch the real-time seatmap update as you reserve and purchase tickets!
 
 *(Optional) Try the AI Agent:* Start the MCP Server (`cd mcp-server && npm run build && npm start`) and connect Claude Desktop to it to let the AI book tickets for you!
