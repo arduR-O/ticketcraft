@@ -3,21 +3,22 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
-import { LoginModal } from '@/components/LoginModal';
+import { useQueueStore } from '@/store/useQueueStore';
+import { useUIStore } from '@/store/useUIStore';
 import { api } from '@/lib/api';
 
 export function EventActions({ eventId }: { eventId: number }) {
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const accessToken = useAuthStore((state) => state.accessToken);
-  const setQueuePass = useAuthStore((state) => state.setQueuePass);
+  const setQueuePass = useQueueStore((state) => state.setQueuePass);
+  const openLoginModal = useUIStore((state) => state.openLoginModal);
   const router = useRouter();
 
   const handleBookTickets = async () => {
     setError(null);
     if (!accessToken) {
-      setIsLoginModalOpen(true);
+      openLoginModal();
       return;
     }
 
@@ -59,12 +60,6 @@ export function EventActions({ eventId }: { eventId: number }) {
         </button>
         {error && <p className="text-red-500 text-sm">{error}</p>}
       </div>
-
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
-        onClose={() => setIsLoginModalOpen(false)} 
-        onSuccess={handleBookTickets} 
-      />
     </>
   );
 }

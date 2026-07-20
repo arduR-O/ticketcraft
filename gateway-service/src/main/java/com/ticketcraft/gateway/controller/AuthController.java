@@ -7,6 +7,7 @@ import com.ticketcraft.gateway.service.RefreshTokenService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,8 +21,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+import org.springframework.web.bind.annotation.CrossOrigin;
+
 @RestController
 @RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class AuthController {
 
   private final ReactiveStringRedisTemplate redisTemplate;
@@ -30,19 +35,11 @@ public class AuthController {
   private final JwtService jwtService;
   private final RefreshTokenService refreshTokenService;
 
-  public AuthController(
-      ReactiveStringRedisTemplate redisTemplate,
-      UserRepository userRepository,
-      PasswordEncoder passwordEncoder,
-      JwtService jwtService,
-      RefreshTokenService refreshTokenService) {
-    this.redisTemplate = redisTemplate;
-    this.userRepository = userRepository;
-    this.passwordEncoder = passwordEncoder;
-    this.jwtService = jwtService;
-    this.refreshTokenService = refreshTokenService;
-  }
 
+
+  /**
+   * Exchanges an OAuth2 one-time code for JWT access and refresh tokens.
+   */
   @PostMapping("/token")
   public Mono<ResponseEntity<Map<String, String>>> exchangeToken(
       @RequestBody Map<String, String> request) {
@@ -70,6 +67,9 @@ public class AuthController {
         .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()));
   }
 
+  /**
+   * Registers a new user with email and password credentials.
+   */
   @PostMapping("/register")
   public Mono<ResponseEntity<Map<String, String>>> register(
       @RequestBody Map<String, String> request) {
@@ -104,6 +104,9 @@ public class AuthController {
                 }));
   }
 
+  /**
+   * Authenticates a user with email and password and returns JWT tokens.
+   */
   @PostMapping("/login")
   public Mono<ResponseEntity<Map<String, String>>> login(
       @RequestBody Map<String, String> request) {
@@ -130,9 +133,12 @@ public class AuthController {
                         .body(Map.of("accessToken", accessToken));
                   });
             })
-        .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()));
+        .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid email/password or account was registered via Google"))));
   }
 
+  /**
+   * Rotates a refresh token and issues a new access token.
+   */
   @PostMapping("/refresh")
   public Mono<ResponseEntity<Map<String, String>>> refresh(
       @CookieValue(name = "refreshToken", required = false) String refreshToken) {
@@ -160,6 +166,9 @@ public class AuthController {
         .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()));
   }
 
+  /**
+   * Logs out the user by clearing their cookies and revoking the refresh token.
+   */
   @PostMapping("/logout")
   public Mono<ResponseEntity<Void>> logout(
       @CookieValue(name = "refreshToken", required = false) String refreshToken) {

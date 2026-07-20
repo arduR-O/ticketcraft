@@ -18,6 +18,7 @@ public class SecurityConfig {
         .authorizeExchange(
             exchanges ->
                 exchanges
+                    .pathMatchers(org.springframework.http.HttpMethod.OPTIONS).permitAll()
                     .pathMatchers("/login/**", "/oauth2/**", "/api/v1/auth/**")
                     .permitAll()
                     .anyExchange()

@@ -22,40 +22,39 @@ export function EventCard({ event }: { event: EventResponse }) {
 
   return (
     <Link href={`/events/${event.id}`}>
-      <div className="group flex flex-col sm:flex-row bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200">
-        <div className="sm:w-64 h-48 sm:h-auto shrink-0 relative bg-gray-100 overflow-hidden">
-          {/* We will use a dynamic placeholder image based on the artist name */}
+      <div className="group flex flex-col sm:flex-row py-6 border-b border-gray-200 hover:bg-gray-50/50 transition-colors duration-200 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="sm:w-64 h-48 sm:h-32 shrink-0 relative bg-gray-100 overflow-hidden sm:rounded-md">
+          {/* We will use a dynamic placeholder image based on the event ID */}
           <img
-            src={`https://source.unsplash.com/800x400/?concert,${encodeURIComponent(event.artistName)}`}
+            src={`https://picsum.photos/seed/${event.id}/800/400`}
             alt={event.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
         </div>
         
-        <div className="flex-1 p-5 flex flex-col justify-between">
+        <div className="flex-1 sm:pl-6 py-4 sm:py-0 flex flex-col justify-center">
           <div>
-            <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+            <h3 className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
               {event.title}
             </h3>
-            <p className="text-gray-500 mt-1 text-sm line-clamp-2">{event.description}</p>
+            <p className="text-gray-500 mt-1 text-sm truncate">{event.description}</p>
           </div>
 
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center text-gray-700 text-sm">
-              <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+          <div className="mt-3 flex flex-wrap gap-4">
+            <div className="flex items-center text-gray-700 text-sm font-medium" suppressHydrationWarning>
+              <Calendar className="w-4 h-4 mr-1.5 text-blue-600" />
               {formattedDate}
             </div>
-            <div className="flex items-center text-gray-700 text-sm">
-              <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+            <div className="flex items-center text-gray-700 text-sm font-medium">
+              <MapPin className="w-4 h-4 mr-1.5 text-blue-600" />
               {event.venueName}, {event.venueLocation}
             </div>
           </div>
         </div>
 
-        <div className="hidden sm:flex sm:flex-col sm:justify-center sm:items-center sm:w-48 bg-gray-50 border-l border-gray-200 p-4">
-          <span className="text-sm text-gray-500 mb-2">Tickets from</span>
-          <button className="bg-blue-600 text-white font-semibold py-2 px-6 rounded hover:bg-blue-700 transition-colors">
+        <div className="hidden sm:flex sm:flex-col sm:justify-center sm:items-end sm:w-48">
+          <button className="text-blue-600 font-semibold py-2 px-6 rounded-full border border-blue-600 hover:bg-blue-50 transition-colors">
             See Tickets
           </button>
         </div>

@@ -22,10 +22,6 @@ public class PaymentController {
     @PostMapping("/process")
     public ResponseEntity<PaymentResponse> processPayment(@RequestBody PaymentRequest request) {
         PaymentResponse response = paymentProcessingService.process(request);
-        if ("SUCCESS".equals(response.getStatus())) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
+        return ResponseEntity.ok(response);
     }
 }

@@ -17,12 +17,12 @@ export function useGeolocation() {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setState({
+      setTimeout(() => setState({
         lat: null,
         lng: null,
         loading: false,
         error: 'Geolocation is not supported by your browser',
-      });
+      }), 0);
       return;
     }
 

@@ -20,5 +20,7 @@ eureka:
 queue:
   jwt:
     secret: "ticketcraft_waiting_room_secret_key_32_bytes_long_minimum!"
-  max-active-sessions: 10000
-  heartbeat-grace-seconds: 15
+  max-active-sessions: 1
+  # Demo purpose: 2s heartbeat grace (matches exactly 1 heartbeat cycle to simulate no extra grace). 
+  # Prod will have a longer grace period to tolerate network jitter.
+  heartbeat-grace-seconds: 2

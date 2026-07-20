@@ -32,7 +32,7 @@ public class QueueScheduler {
    * (users move up the queue quickly) and preventing CPU/Redis overload. Using Spring's
    * @Scheduled with Reactor requires calling .subscribe() to actually initiate the async flow.
    */
-  @Scheduled(fixedRate = 5000)
+  @Scheduled(fixedRate = 2000)
   public void promoteUsersInQueue() {
     queueService
         .getActiveEventQueues()

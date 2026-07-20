@@ -22,6 +22,9 @@ public class RefreshTokenService {
     this.objectMapper = objectMapper;
   }
 
+  /**
+   * Generates a new refresh token and saves it to Redis as the root of a new token family.
+   */
   public Mono<String> createRefreshToken(String userId) {
     String tokenId = UUID.randomUUID().toString();
     String familyId = tokenId; // Root token is its own family
@@ -31,6 +34,10 @@ public class RefreshTokenService {
         .thenReturn(tokenId);
   }
 
+  /**
+   * Rotates an existing refresh token by marking it as used and issuing a new one in the same family. 
+   * If reuse of a previously rotated token is detected, it revokes the entire family.
+   */
   public Mono<RotationResult> rotateRefreshToken(String oldTokenId) {
     String tokenKey = "refresh:" + oldTokenId;
     return redisTemplate.opsForValue().get(tokenKey)
@@ -65,6 +72,9 @@ public class RefreshTokenService {
         });
   }
 
+  /**
+   * Looks up a token's family ID and revokes all tokens within that family.
+   */
   public Mono<Void> revokeFamilyByTokenId(String tokenId) {
     String tokenKey = "refresh:" + tokenId;
     return redisTemplate.opsForValue().get(tokenKey)
@@ -80,6 +90,9 @@ public class RefreshTokenService {
         });
   }
 
+  /**
+   * Deletes all tokens belonging to a specific family ID from Redis.
+   */
   private Mono<Void> revokeFamilyByFamilyId(String familyId) {
     String familyKey = "family:" + familyId;
     return redisTemplate.opsForSet().members(familyKey)
@@ -88,6 +101,9 @@ public class RefreshTokenService {
         .then();
   }
 
+  /**
+   * Helper method to serialize and save a token record JSON payload to Redis.
+   */
   private Mono<Boolean> saveTokenRecord(String tokenId, String familyId, String userId, boolean used) {
     try {
       Map<String, Object> record = Map.of(

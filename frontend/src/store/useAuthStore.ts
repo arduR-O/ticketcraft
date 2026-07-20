@@ -1,48 +1,35 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 interface AuthState {
   accessToken: string | null;
-  refreshToken: string | null;
-  userId: string | null; // For simplicity in this mockup
-  setTokens: (access: string, refresh: string) => void;
-  setUserId: (id: string) => void;
+  userId: string | null;
+  userEmail: string | null;
+  setAccessToken: (access: string) => void;
   logout: () => void;
-  
-  // Queue Pass tokens are per-event
-  queuePasses: Record<string, string>;
-  setQueuePass: (eventId: string, passToken: string) => void;
-  clearQueuePass: (eventId: string) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      accessToken: null,
-      refreshToken: null,
-      userId: 'user123', // Default mock user for testing since auth endpoints might not be fully built
-      queuePasses: {},
+// Helper to decode JWT without an external library
+function decodeJwtPayload(token: string): any {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (e) {
+    return {};
+  }
+}
 
-      setTokens: (access, refresh) => set({ accessToken: access, refreshToken: refresh }),
-      setUserId: (id) => set({ userId: id }),
-      logout: () => set({ accessToken: null, refreshToken: null, queuePasses: {} }),
+export const useAuthStore = create<AuthState>((set) => ({
+  accessToken: null,
+  userId: null,
+  userEmail: null,
 
-      setQueuePass: (eventId, passToken) =>
-        set((state) => ({
-          queuePasses: {
-            ...state.queuePasses,
-            [eventId]: passToken,
-          },
-        })),
-      clearQueuePass: (eventId) =>
-        set((state) => {
-          const newPasses = { ...state.queuePasses };
-          delete newPasses[eventId];
-          return { queuePasses: newPasses };
-        }),
-    }),
-    {
-      name: 'ticketcraft-auth',
-    }
-  )
-);
+  setAccessToken: (access) => {
+    const payload = decodeJwtPayload(access);
+    set({ 
+      accessToken: access, 
+      userId: payload.sub || null,
+      userEmail: payload.email || null
+    });
+  },
+
+  logout: () => set({ accessToken: null, userId: null, userEmail: null }),
+}));

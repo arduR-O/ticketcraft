@@ -65,7 +65,7 @@ public class QueueController {
     return queueService
         .enqueueUser(eventId, userId)
         .thenMany(
-            Flux.interval(Duration.ofSeconds(5)).flatMap(tick -> checkStatus(eventId, userId)));
+            Flux.interval(Duration.ZERO, Duration.ofSeconds(2)).flatMap(tick -> checkStatus(eventId, userId)));
   }
 
   /**

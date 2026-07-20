@@ -56,43 +56,6 @@ public class QueuePassValidationGatewayFilterFactory
   @Override
   public GatewayFilter apply(Config config) {
     return (exchange, chain) -> {
-      ServerHttpRequest request = exchange.getRequest();
-      String path = request.getPath().value();
-
-      // Seat reads can bypass the pass when no queue is active. Writes must always validate.
-      if (path.contains("/seatmap") || path.contains("/seat-stream")) {
-        String eventId = extractEventIdFromPath(path);
-        if (eventId != null) {
-          String activeSessionsKey = "{" + eventId + "}:active_sessions";
-          String waitlistKey = "{" + eventId + "}:waitlist";
-
-          return redisTemplate
-              .opsForZSet()
-              .size(activeSessionsKey)
-              .defaultIfEmpty(0L)
-              .zipWith(redisTemplate.opsForZSet().size(waitlistKey).defaultIfEmpty(0L))
-              .flatMap(
-                  tuple -> {
-                    long activeCount = tuple.getT1();
-                    long waitlistCount = tuple.getT2();
-
-                    // If active sessions are below max, and waitlist is empty, validation is
-                    // bypassed.
-                    if (activeCount < maxActiveSessions && waitlistCount == 0) {
-                      log.debug(
-                          "Bypassing queue pass check for seatmap. activeCount={},"
-                              + " waitlistCount={}",
-                          activeCount,
-                          waitlistCount);
-                      return chain.filter(exchange);
-                    }
-
-                    // Otherwise, enforce pass validation
-                    return validatePass(exchange, chain);
-                  });
-        }
-      }
-
       return validatePass(exchange, chain);
     };
   }
@@ -101,6 +64,11 @@ public class QueuePassValidationGatewayFilterFactory
       ServerWebExchange exchange,
       org.springframework.cloud.gateway.filter.GatewayFilterChain chain) {
     ServerHttpRequest request = exchange.getRequest();
+    
+    if (request.getMethod().name().equals("OPTIONS")) {
+      return chain.filter(exchange);
+    }
+
     String queuePass = request.getHeaders().getFirst(QUEUE_PASS_HEADER);
     if (queuePass == null || queuePass.isEmpty()) {
       queuePass = request.getQueryParams().getFirst("queue_pass");

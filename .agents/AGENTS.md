@@ -18,3 +18,7 @@ When working on this codebase, always adhere to the following rules:
 <RULE[next_mcp_server]>
 8. **Next.js MCP Server Tools**: When working on the Next.js frontend, actively use the `next-devtools-mcp` tools (such as `get_errors`, `get_logs`, `get_page_metadata`, `get_routes`) to debug, diagnose errors, and consult the Next.js knowledge base. This guarantees alignment with Next.js 16 app router best practices and prevents hallucinations.
 </RULE[next_mcp_server]>
+
+<RULE[context7_documentation]>
+9. **Use Context7 for Documentation**: When researching or writing code for libraries/frameworks, prefer using the `context7` MCP server tools to fetch up-to-date and version-specific documentation rather than relying on training data or external web searches.
+</RULE[context7_documentation]>

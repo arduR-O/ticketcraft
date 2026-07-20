@@ -56,5 +56,6 @@ eureka:
 
 booking:
   lock-lease-minutes: 11           # 1 min buffer over 10-min cart expiry
+  lock-wait-seconds: 2
   cart-expiry-minutes: 10
   max-seats-per-booking: 6

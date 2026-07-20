@@ -30,6 +30,18 @@ spring:
             scope: openid, profile, email
   cloud:
     gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: 
+              - "http://localhost:3000"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
       routes:
         # ── Queue-pass-protected seatmap route ──
         - id: seatmap-with-pass
@@ -161,7 +173,7 @@ management:
 queue:
   jwt:
     secret: "ticketcraft_waiting_room_secret_key_32_bytes_long_minimum!"
-  max-active-sessions: 10000
+  max-active-sessions: 1
 
 auth:
   jwt:

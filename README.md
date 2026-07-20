@@ -1,107 +1,89 @@
 # TicketCraft
 
-TicketCraft is a high-concurrency ticket booking engine and distributed systems simulator modeled after Ticketmaster. The platform is designed to simulate flash-sale ticket distributions for major events (e.g., a 130,000+ capacity stadium concert) under heavy concurrent load while maintaining strict transactional consistency, zero double-booking, and sub-millisecond query latencies.
+TicketCraft is a high-concurrency ticket booking engine and distributed systems simulator. The platform is engineered to simulate flash-sale ticket distributions for major events (e.g., a 130,000+ capacity stadium concert) under extreme concurrent load. 
+
+It guarantees strict transactional consistency, zero double-booking, and sub-millisecond query latencies, all while dynamically throttling traffic through an automated virtual waiting room.
 
 ---
 
 ## 🏗️ System Architecture & Tech Stack
 
-This platform is structured as a Java Spring Boot microservices cluster running inside Docker containers:
+This platform is structured as a Java Spring Boot microservices cluster.
 
-* **API Gateway (`gateway-service`)**: Spring Cloud Gateway. Handles routing, rate-limiting (Redis Token Bucket), and JWT authentication propagation.
-* **Service Discovery (`eureka-server`)**: Eureka Server for dynamic registry and heartbeat-based instance health monitoring.
-* **Lobby Queue (`queue-service`)**: Spring WebFlux & Redis ZSET. Prevents microservice thread pool exhaustion by routing excess requests to a virtual waiting room.
-* **Catalog API (`catalog-service`)**: PostgreSQL Full-Text Search (GIN indices), Geospatial coordinates, and gRPC Seat Checking.
-* **Booking Engine (`booking-service`)**: Redisson (Redis locks) to handle multi-seat transactions synchronously, and Server-Sent Events (SSE) for real-time seat map state synchronization.
-* **Payment Worker (`payment-service`)**: Consumes Kafka events asynchronously to run simulated billing checkouts.
-
----
-
-## ⚡ Core Technical Solutions & Design Decisions
-
-### 1. Lock Ordering to Prevent Distributed Deadlocks
-When users reserve multiple seats simultaneously (e.g., Alice requests seats `[104, 105]` while Bob requests `[105, 104]` at the exact same millisecond), acquiring distributed locks in arbitrary orders leads to cyclic wait conditions (deadlocks).
-* **The Solution**: The `booking-service` **sorts the target seat IDs numerically** prior to requesting locks. Enforcing a strict, global lock acquisition order across all threads converts potential deadlocks into predictable, serialized wait sequences.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Alice
-    actor Bob
-    participant BookingService as booking-service
-    participant Redis as Redis (Redisson)
-
-    Note over Alice, Bob: alice tries [105, 104] | bob tries [104, 105]
-    BookingService->>BookingService: Sort Alice's list: [104, 105]
-    BookingService->>BookingService: Sort Bob's list: [104, 105]
-    
-    par Parallel Lock Attempts on Seat 104
-        BookingService->>Redis: Alice attempts lock:seat:104
-        BookingService->>Redis: Bob attempts lock:seat:104
-    end
-    
-    alt Alice Wins Lock 104
-        Redis-->>BookingService: Alice gets lock:seat:104
-        Redis-->>BookingService: Bob blocks on lock:seat:104 (Waits)
-        BookingService->>Redis: Alice attempts lock:seat:105
-        Redis-->>BookingService: Alice gets lock:seat:105
-        Note over BookingService, Redis: Alice completes reservation & releases locks
-        BookingService->>Redis: Bob resumes & attempts lock:seat:104
-    end
-```
+* **API Gateway (`gateway-service`)**: Spring Cloud Gateway. Handles edge routing, global rate-limiting (Redis Token Bucket), and JWT authentication mapping. Protects the cluster by validating Queue Passes via a custom global filter.
+* **Service Discovery (`eureka-server`)**: Netflix Eureka Server for dynamic registry, client-side load balancing, and heartbeat-based instance health monitoring.
+* **Lobby Queue (`queue-service`)**: Spring WebFlux & Redis ZSETs. Prevents thread pool exhaustion by routing excess requests to a virtual waiting room. Uses an atomic Lua script to manage promotions and zombie eviction.
+* **Catalog API (`catalog-service`)**: PostgreSQL Full-Text Search (GIN indices) for forgiving searches. Broadcasts real-time seat availability to connected clients via Server-Sent Events (SSE) and Redis Pub/Sub.
+* **Booking Engine (`booking-service`)**: Tomcat + Virtual Threads. Uses Redisson (Redis distributed locks) to handle multi-seat transactions synchronously. 
+* **Payment Worker (`payment-service`)**: Consumes Kafka events asynchronously to run simulated billing checkouts without blocking HTTP threads.
+* **Frontend**: Next.js 16, React, TypeScript, and Vanilla CSS with a clean, responsive UI.
+* **Agentic API (MCP Server)**: A standalone Node.js Model Context Protocol (MCP) server that exposes the entire ticketing engine to AI Agents (like Claude), allowing them to autonomously book tickets on behalf of users.
 
 ---
 
-### 2. Waitlist Position Update Scalability (Decoupled SSE Ranks)
-Broadcasting queue position updates to 100,000 waiting users every time *one* user is promoted creates an $O(N \cdot M)$ network congestion pattern (where $N$ is waitlist size and $M$ is promotion rate), saturating network interfaces (NICs).
-* **The Solution**: Instead of event-triggered broadcasts, we implement a **decoupled interval-based push**. Each open SSE connection in the `queue-service` runs a task **every 5 seconds** that performs a fast $O(\log N)$ `ZRANK` check against the Redis Sorted Set (`ZSET`) waitlist. This flat lines network bandwidth and scales predictably with waitlist size.
+## ⚡ Core Technical Feats (The "Cool Things")
+
+### 1. The Virtual Queue (Atomic Lua Scheduling)
+When a highly anticipated event opens, 100,000 users hit the platform simultaneously. Instead of crashing, the Gateway routes them to the `queue-service`.
+* Users are placed into a Redis Sorted Set (`waitlist`), scored by entry timestamp.
+* Every 2 seconds, a distributed scheduler triggers a highly-optimized, **atomic Lua script** inside Redis.
+* The script purges "zombie" sessions (users who dropped connection and failed to send a heartbeat), calculates available cluster capacity, and pops the top $N$ users from the waitlist into the `active_sessions` set.
+* The frontend streams its queue position via an SSE connection and automatically fast-tracks into the seatmap once promoted.
+
+### 2. Lock Ordering to Prevent Distributed Deadlocks
+When Alice requests seats `[104, 105]` and Bob requests `[105, 104]` at the exact same millisecond, acquiring distributed locks blindly leads to cyclic deadlocks.
+The `booking-service` **sorts the target seat IDs numerically** prior to requesting Redisson locks. Enforcing a strict, global lock acquisition order across all threads converts potential deadlocks into predictable, serialized wait sequences.
+
+### 3. Server-Sent Events (SSE) with Redis Pub/Sub
+Kafka is used for asynchronous data persistence, but it uses Consumer Groups which load-balance messages. If we used Kafka for real-time seatmap UI updates, only 1 of our 5 `catalog-service` pods would receive the "Seat Locked" event, leaving the users connected to the other 4 pods with stale data.
+Instead, we decoupled the broadcasting bus. The booking engine publishes to **Redis Pub/Sub**, ensuring all `catalog-service` instances receive the event simultaneously and immediately push the update down to their locally connected SSE browser clients.
+
+### 4. Split Token Security (XSS & CSRF Immunity)
+To secure the microservices statelessly without sacrificing the ability to revoke sessions:
+* **Access Token:** Stored exclusively in JS Heap memory (Zustand). Completely blocks CSRF attacks because the browser doesn't automatically attach it, and XSS scripts cannot easily scrape it from memory if React sanitizes inputs.
+* **Refresh Token:** Stored as an `HttpOnly`, `SameSite=Strict` cookie. When the Access Token expires, an Axios interceptor catches the 401, buffers incoming requests into a Promise queue, silently calls the `/refresh` endpoint (which transmits the HttpOnly cookie), and then resumes the queued requests seamlessly.
+
+### 5. Automated AI Agents (MCP Server)
+The system is built for the future of the web. The included `mcp-server` allows autonomous AI agents to interact with the backend APIs via the **Model Context Protocol**. You can ask Claude Desktop to "Book me 2 seats for Queen" and watch it autonomously search the catalog, analyze the seatmap, reserve the locks, and checkout on your behalf.
 
 ---
 
-### 3. Session Security Split: CSRF Block vs. Stateful Revocation
-To secure microservice communications statelessly without sacrificing the ability to revoke user sessions, we split token lifetimes and storage:
-* **JS Memory (Access Token)**: The short-lived `accessToken` is stored in JS memory (React state) and passed via the `Authorization: Bearer` header. This completely blocks **CSRF (Cross-Site Request Forgery)** since malicious sites cannot access the JS memory space.
-* **HttpOnly Cookies (Refresh Token)**: The long-lived `refreshToken` is stored in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie. When a user closes or refreshes their browser tab (destroying the JS memory state), the application calls `POST /api/auth/refresh`. The browser automatically transmits the cookie, which the Gateway validates against a Redis whitelist to issue a new access token.
+## 🚀 Running the Platform Locally
 
----
-
-### 4. Database Connection Multiplexing with PgBouncer
-Under flash-sale surges, Tomcat's thread-pool can easily spawn hundreds of threads. Allocating a physical PostgreSQL connection to every thread quickly hits the OS fork limit and causes severe connection context-switching bottlenecks in PostgreSQL.
-* **The Solution**: We configure **PgBouncer transaction-level pooling**. Application connections are decoupled from physical database connections. PgBouncer multiplexes thousands of active application connections over a compact pool of 50 physical PostgreSQL connections, releasing database sockets the microsecond a transaction commits.
-
----
-
-### 5. Asynchronous Payment Offloading with DLQ Recovery
-Processing external payment API calls (e.g., Stripe) takes 1–3 seconds. Holding database connections and locks open for this duration would exhaust our pool and crash the booking engine under load.
-* **The Solution**: The booking engine writes a `PENDING` transaction to the database, releases all database locks/connections, and publishes a `BookingCreatedEvent` to Apache Kafka. The payment service consumes the event asynchronously, calls the payment API, and broadcasts a `PaymentProcessedEvent`. If a payment call fails due to transient network errors, a **Dead Letter Queue (DLQ)** with exponential backoff handles retries, ensuring eventual consistency.
-
----
-
-### 6. Double Precision vs. Decimal String Serialization in gRPC
-gRPC services communicate over HTTP/2 using Protocol Buffers. However, Protobuf lacks a native decimal type, and mapping currency to `double` or `float` fields introduces binary representation rounding errors (IEEE 754 precision issues).
-* **The Solution**: Prices and money values are explicitly transmitted as a **`string`** in `.proto` files (e.g., `"150.00"`). This protects the transaction stream from rounding errors during serialization/deserialization. The receiving client safe-casts the string directly back into a Java `BigDecimal`.
-
----
-
-## 🚀 Getting Started
+To experience the platform, follow these steps to boot the cluster on your local machine.
 
 ### Prerequisites
-* Java 21
-* Maven 3.8+
+* Java 21+
+* Node.js 20+
 * Docker & Docker Compose
+* Maven
 
-### Running Locally
-1. Clone the repository:
-   ```bash
-   git clone git@github.com:arduR-O/ticketcraft.git
-   cd ticketcraft
-   ```
-2. Spin up the infrastructure containers (PostgreSQL, Redis, Kafka, Zipkin):
-   ```bash
-   docker compose up -d
-   ```
-3. Build the project and generate the gRPC stubs:
-   ```bash
-   mvn clean install
-   ```
-4. Run all microservices or launch them from your favorite IDE.
+### 1. Boot the Infrastructure
+Start the data layer (PostgreSQL, Redis, Kafka).
+```bash
+docker compose up -d
+```
+*Wait ~15 seconds for Kafka and Postgres to fully initialize.*
+
+### 2. Boot the Microservices
+We provide a convenient bash script to start the Eureka Server, API Gateway, and the 4 domain microservices in the background.
+```bash
+./start.sh
+```
+*Wait ~30 seconds. You can verify they are running by navigating to the Eureka Dashboard at `http://localhost:8761`.*
+
+### 3. Start the Frontend Application
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 4. Try it out!
+1. Open `http://localhost:3000` in your browser.
+2. Sign in using the mock Google OAuth button.
+3. Search for "Queen" or "Coldplay".
+4. Enter the Virtual Waiting Room (simulated).
+5. Watch the real-time seatmap update as you reserve and purchase tickets!
+
+*(Optional) Try the AI Agent:* Start the MCP Server (`cd mcp-server && npm run build && npm start`) and connect Claude Desktop to it to let the AI book tickets for you!

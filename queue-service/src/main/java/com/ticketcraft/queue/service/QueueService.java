@@ -125,7 +125,8 @@ public class QueueService {
         .flatMap(
             score -> {
               if (score != null) {
-                return Mono.just(generatePassToken(userId, eventId));
+                return redisTemplate.opsForZSet().remove(getWaitlistKey(eventId), userId)
+                    .then(Mono.just(generatePassToken(userId, eventId)));
               }
               return Mono.empty();
             });
@@ -164,20 +165,33 @@ public class QueueService {
     String heartbeatsKey = getHeartbeatsKey(eventId);
     long now = Instant.now().toEpochMilli();
 
-    return redisTemplate.opsForZSet().size(waitlistKey)
-        .defaultIfEmpty(0L)
-        .zipWith(redisTemplate.opsForZSet().size(activeSessionsKey).defaultIfEmpty(0L))
-        .flatMap(tuple -> {
-          long waitlistSize = tuple.getT1();
-          long activeSize = tuple.getT2();
-
-          if (waitlistSize == 0 && activeSize < maxActiveSessions) {
-            return redisTemplate.opsForZSet().add(activeSessionsKey, userId, (double) now)
-                .then(redisTemplate.opsForZSet().add(heartbeatsKey, userId, (double) now))
-                .then(Mono.just(generatePassToken(userId, eventId)));
+    return redisTemplate.opsForZSet().score(activeSessionsKey, userId)
+        .flatMap(score -> {
+          if (score != null) {
+            // User was already in active sessions, but they are requesting a new fast-track pass
+            // This means they navigated away and came back.
+            // According to requirements, they lose their spot and must queue again.
+            return redisTemplate.opsForZSet().remove(activeSessionsKey, userId)
+                .then(redisTemplate.opsForZSet().remove(heartbeatsKey, userId))
+                .then(Mono.<String>empty());
           }
-          return Mono.empty();
-        });
+          return Mono.<String>empty();
+        })
+        .switchIfEmpty(
+            redisTemplate.opsForZSet().size(waitlistKey).defaultIfEmpty(0L)
+                .zipWith(redisTemplate.opsForZSet().size(activeSessionsKey).defaultIfEmpty(0L))
+                .flatMap(tuple -> {
+                  long waitlistSize = tuple.getT1();
+                  long activeSize = tuple.getT2();
+
+                  if (waitlistSize == 0 && activeSize < maxActiveSessions) {
+                    return redisTemplate.opsForZSet().add(activeSessionsKey, userId, (double) now)
+                        .then(redisTemplate.opsForZSet().add(heartbeatsKey, userId, (double) now))
+                        .then(Mono.just(generatePassToken(userId, eventId)));
+                  }
+                  return Mono.empty();
+                })
+        );
   }
 
   public Flux<String> getActiveEventQueues() {

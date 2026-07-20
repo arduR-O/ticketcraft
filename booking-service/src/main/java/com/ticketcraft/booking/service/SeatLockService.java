@@ -26,19 +26,22 @@ public class SeatLockService {
 
   private final RedissonClient redissonClient;
   private final long lockLeaseMinutes;
+  private final long lockWaitSeconds;
 
   public SeatLockService(
       RedissonClient redissonClient,
-      @Value("${booking.lock-lease-minutes:11}") long lockLeaseMinutes) {
+      @Value("${booking.lock-lease-minutes:11}") long lockLeaseMinutes,
+      @Value("${booking.lock-wait-seconds:2}") long lockWaitSeconds) {
     this.redissonClient = redissonClient;
     this.lockLeaseMinutes = lockLeaseMinutes;
+    this.lockWaitSeconds = lockWaitSeconds;
   }
 
   /**
    * Attempts to acquire distributed locks for a list of seat IDs.
    * 
    * What: Iterates through the provided seat IDs and tries to acquire a Redisson lock with a
-   * 1-second wait time and 10-minute lease time. If any lock fails to acquire, it releases
+   * configured wait time and 10-minute lease time. If any lock fails to acquire, it releases
    * all previously acquired locks in the batch and returns false.
    * 
    * Why: We need all-or-nothing locking for a cart. If a user wants 4 seats but only 3 are
@@ -55,8 +58,8 @@ public class SeatLockService {
       String lockKey = "lock:seat:" + seatId;
       RLock lock = redissonClient.getLock(lockKey);
       try {
-        // Wait up to 1 second to acquire the lock, lease it for lockLeaseMinutes
-        boolean isAcquired = lock.tryLock(1, lockLeaseMinutes, TimeUnit.MINUTES);
+        // Wait up to lockWaitSeconds to acquire the lock, lease it for lockLeaseMinutes
+        boolean isAcquired = lock.tryLock(lockWaitSeconds, lockLeaseMinutes * 60, TimeUnit.SECONDS);
         if (isAcquired) {
           acquiredLocks.add(lock);
         } else {

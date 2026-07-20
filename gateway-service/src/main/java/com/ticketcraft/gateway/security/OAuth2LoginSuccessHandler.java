@@ -49,6 +49,7 @@ public class OAuth2LoginSuccessHandler implements ServerAuthenticationSuccessHan
                           .provider("GOOGLE")
                           .role("USER")
                           .createdAt(LocalDateTime.now())
+                          .isNew(true)
                           .build();
                   return userRepository.save(newUser);
                 }))
