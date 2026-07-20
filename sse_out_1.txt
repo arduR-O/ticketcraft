@@ -1,9 +1,0 @@
-event:handshake
-data:connected
-
-event:seat-update
-data:{"eventId":1,"updates":[{"seatId":1,"newStatus":"LOCKED"},{"seatId":2,"newStatus":"LOCKED"}],"timestamp":"2026-07-18T13:02:17.609427926Z"}
-
-event:seat-update
-data:{"eventId":1,"updates":[{"seatId":2,"newStatus":"SOLD"},{"seatId":1,"newStatus":"SOLD"}],"timestamp":"2026-07-18T13:02:19.938235828Z"}
-
