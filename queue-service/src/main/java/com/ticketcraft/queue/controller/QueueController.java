@@ -20,13 +20,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Reactive REST Controller for the virtual waiting room.
+ * Reactive REST Controller exposing endpoints for streaming queue status, receiving heartbeats, and health checks.
  * 
- * What: Exposes endpoints for streaming queue status, receiving heartbeats, and health checks.
- * 
- * Why: Built with Spring WebFlux (Reactor) because it must handle thousands of long-lived
- * concurrent connections (SSE) without blocking threads. Thread-per-request models (like MVC)
- * would quickly exhaust connection pools under heavy load.
+ * This is built with Spring WebFlux (Reactor) because it must handle thousands of long-lived
+ * concurrent connections (SSE) without blocking threads. A traditional thread-per-request model (like WebMVC)
+ * would quickly exhaust server thread pools under heavy waiting room load.
  */
 @RestController
 @RequestMapping("/api/queue")
@@ -46,12 +44,11 @@ public class QueueController {
 
   /**
    * Endpoint for clients to join the queue and receive live updates.
+   * Returns a Server-Sent Events (SSE) stream by enqueuing the user and then yielding a stream
+   * of QueueStatus objects.
    * 
-   * What: Returns a Server-Sent Events (SSE) stream. Enqueues the user, then yields a stream
-   * of QueueStatus objects ticking every 5 seconds.
-   * 
-   * Why: SSE is highly efficient for unidirectional status updates. The 5-second polling interval
-   * inside the Flux ensures the client sees their position move up in near real-time without
+   * SSE is utilized here because it is highly efficient for unidirectional status updates compared to WebSockets.
+   * The polling interval inside the Flux ensures the client sees their position move up in near real-time without
    * overwhelming Redis with constant lookups.
    * 
    * @param eventId The event ID.
@@ -70,11 +67,10 @@ public class QueueController {
 
   /**
    * Endpoint for active clients to signal they are still alive.
+   * Processes a heartbeat for the user in the given event's active session.
    * 
-   * What: Processes a heartbeat for the user in the given event's active session.
-   * 
-   * Why: Prevents users who joined the queue but closed their tab from holding up the line forever.
-   * The background Lua script will evict any users who haven't sent a heartbeat within the grace period.
+   * This mechanism is crucial to prevent users who joined the queue but closed their browser tab
+   * from holding up the line indefinitely. The backend worker evicts users without recent heartbeats.
    * 
    * @param eventId The event ID.
    * @param userId The user ID injected by the Gateway after access-token validation.
@@ -99,10 +95,11 @@ public class QueueController {
 
   /**
    * Endpoint to attempt bypassing the queue.
+   * If the queue is inactive/empty, it returns a pass token immediately.
    * 
-   * What: If the queue is inactive/empty, returns a pass token immediately.
-   * 
-   * Why: Simplifies frontend logic; the frontend always asks for a pass first.
+   * This endpoint is provided to simplify frontend logic, allowing the client to always 
+   * ask for a pass directly. If denied with a 409 Conflict, the frontend knows it must 
+   * fall back to joining the SSE queue stream.
    * 
    * @return 200 OK with passToken, or 409 Conflict if the queue is active.
    */

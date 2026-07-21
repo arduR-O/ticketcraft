@@ -164,17 +164,22 @@ eureka:
   instance:
     prefer-ip-address: true
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health, info
+
 
 queue:
   jwt:
     secret: "ticketcraft_waiting_room_secret_key_32_bytes_long_minimum!"
-  max-active-sessions: 1
+  max-active-sessions: 1 # For testing purpose
 
 auth:
   jwt:
     secret: "ticketcraft_global_auth_secret_key_32_bytes_long_minimum!"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health, info
+  metrics:
+    tags:
+      application: ${spring.application.name}

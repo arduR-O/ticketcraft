@@ -21,10 +21,10 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * REST Controller exposing the HTTP endpoints for the booking-service.
  * 
- * What: Handles POST /api/bookings (reserving seats), POST /api/bookings/{id}/checkout,
+ * Handles POST /api/bookings (reserving seats), POST /api/bookings/{id}/checkout,
  * and GET /api/bookings/{id} (status polling).
  * 
- * Why: This controller acts as the primary external boundary for clients adding tickets
+ * This controller acts as the primary external boundary for clients adding tickets
  * to their cart and finalizing their purchases. It relies on the Gateway service to inject
  * validated user identities (`X-User-Id`), ensuring unauthorized users cannot spoof
  * bookings for others.
@@ -40,9 +40,9 @@ public class BookingController {
   /**
    * Endpoint to reserve (lock) seats and create a pending booking.
    * 
-   * What: Accepts an eventId and a list of seatIds, delegates to the BookingService, and returns 201 Created.
+   * Accepts an eventId and a list of seatIds, delegates to the BookingService, and returns 201 Created.
    * 
-   * Why: This is the first step in the checkout flow. Reserving the seats synchronously via HTTP gives
+   * This is the first step in the checkout flow. Reserving the seats synchronously via HTTP gives
    * the client immediate feedback if the seats are unavailable, allowing them to try different seats quickly
    * without dealing with asynchronous queueing delays.
    * 
@@ -68,10 +68,10 @@ public class BookingController {
   /**
    * Endpoint to complete the purchase of a pending booking.
    * 
-   * What: Accepts payment details (like card number), delegates to BookingService for synchronous
+   * Accepts payment details (like card number), delegates to BookingService for synchronous
    * payment processing, and returns the confirmed (or cancelled) booking.
    * 
-   * Why: Checkout is a synchronous HTTP call because the user expects immediate confirmation of
+   * Checkout is a synchronous HTTP call because the user expects immediate confirmation of
    * their payment. If it fails, they need to know instantly so they can try a different card before
    * their cart expires.
    * 
@@ -94,9 +94,9 @@ public class BookingController {
   /**
    * Endpoint to poll the status of an existing booking.
    * 
-   * What: Retrieves the booking state from the database and returns it if it belongs to the user.
+   * Retrieves the booking state from the database and returns it if it belongs to the user.
    * 
-   * Why: Provides a fallback mechanism for the client to recover their booking state (e.g. if their
+   * Provides a fallback mechanism for the client to recover their booking state (e.g. if their
    * browser crashed during the checkout loading spinner).
    * 
    * @param userId Injected by the Gateway after JWT validation.

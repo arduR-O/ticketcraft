@@ -31,7 +31,6 @@ function QueueContent() {
     }
 
     let eventSource: EventSource | null = null;
-    let heartbeatInterval: NodeJS.Timeout | null = null;
 
     const connectToQueue = () => {
       // 1. Establish SSE Connection immediately
@@ -68,40 +67,12 @@ function QueueContent() {
         cleanup();
       };
 
-      // 2. Attempt Fast-Track concurrently
-      api.get(`/queue/${eventId}/pass`)
-        .then((response) => {
-          if (response.data && response.data.passToken) {
-            setQueuePass(eventId, response.data.passToken);
-            cleanup();
-            router.push(`/events/${eventId}/seatmap`);
-          }
-        })
-        .catch((error) => {
-          // 409 Conflict means the queue is active. SSE will handle updates.
-          if (error.response?.status !== 409) {
-            console.error('Fast-track failed with unexpected error:', error);
-          }
-        });
-
-      // 3. Start Heartbeat
-      heartbeatInterval = setInterval(async () => {
-        try {
-          await api.post(`/queue/${eventId}/heartbeat`);
-        } catch (error) {
-          console.error('Heartbeat failed:', error);
-        }
-      }, 2000); // Demo purpose: 2s heartbeat for fast eviction. Prod will have a longer heartbeat.
     };
 
     const cleanup = () => {
       if (eventSource) {
         eventSource.close();
         eventSource = null;
-      }
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
       }
     };
 

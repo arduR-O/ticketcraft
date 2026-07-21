@@ -13,9 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Read-only service for querying catalog data (events, seats, and pricing).
  * 
- * What: Provides search capabilities for events and retrieves seat maps and detailed event data.
+ * Provides search capabilities for events and retrieves seat maps and detailed event data.
  * 
- * Why: Separates read-heavy operations from write-heavy operations (like seat status updates). 
+ * Separates read-heavy operations from write-heavy operations (like seat status updates). 
  * By marking it @Transactional(readOnly = true), we allow the underlying ORM to optimize fetches
  * and avoid dirty checking, improving read throughput for the high-traffic catalog search.
  */
@@ -30,9 +30,9 @@ public class CatalogSearchService {
   /**
    * Searches for events matching a query string.
    * 
-   * What: Executes a full-text or LIKE search on the event repository and maps the results to DTOs.
+   * Executes a full-text or LIKE search on the event repository and maps the results to DTOs.
    * 
-   * Why: Used by the frontend search bar. Pagination is passed down to the repository layer
+   * Used by the frontend search bar. Pagination is passed down to the repository layer
    * to prevent loading thousands of events into application memory at once.
    * 
    * @param query The search term.
@@ -60,9 +60,9 @@ public class CatalogSearchService {
   /**
    * Searches for events ordered by proximity to a given location.
    * 
-   * What: Executes a native query with the Haversine formula to sort by distance.
+   * Executes a native query with the Haversine formula to sort by distance.
    * 
-   * Why: Used by the frontend homepage to show events near the user's physical location.
+   * Used by the frontend homepage to show events near the user's physical location.
    * 
    * @param lat The user's latitude.
    * @param lng The user's longitude.
@@ -87,9 +87,9 @@ public class CatalogSearchService {
   /**
    * Retrieves the full list of seats for a specific event.
    * 
-   * What: Validates the event exists, fetches all seats linked to it, and maps them to SeatResponse DTOs.
+   * Validates the event exists, fetches all seats linked to it, and maps them to SeatResponse DTOs.
    * 
-   * Why: Serves as the initial payload for the frontend seatmap rendering. Clients fetch this
+   * Serves as the initial payload for the frontend seatmap rendering. Clients fetch this
    * once on page load, and subsequently rely on the SSE stream to receive delta updates.
    * 
    * @param eventId The ID of the event.
@@ -120,10 +120,10 @@ public class CatalogSearchService {
   /**
    * Gets aggregated details for an event including pricing tiers and availability.
    * 
-   * What: Fetches the event and its seats, aggregates the total/available seat counts, and builds
+   * Fetches the event and its seats, aggregates the total/available seat counts, and builds
    * a distinct list of pricing tiers.
    * 
-   * Why: This provides the summary view for an event page (e.g. "From $50.00 | 200 seats left")
+   * This provides the summary view for an event page (e.g. "From $50.00 | 200 seats left")
    * without requiring the client to manually fetch and compute thousands of seat records.
    * 
    * @param eventId The ID of the event.

@@ -27,7 +27,7 @@ class SeatLockServiceTests {
 
   @BeforeEach
   void setUp() {
-    seatLockService = new SeatLockService(redissonClient, 11);
+    seatLockService = new SeatLockService(redissonClient, 11L, 2L);
   }
 
   @Test
@@ -39,14 +39,14 @@ class SeatLockServiceTests {
     when(redissonClient.getLock("lock:seat:101")).thenReturn(mockLock1);
     when(redissonClient.getLock("lock:seat:102")).thenReturn(mockLock2);
 
-    when(mockLock1.tryLock(1, 11, TimeUnit.MINUTES)).thenReturn(true);
-    when(mockLock2.tryLock(1, 11, TimeUnit.MINUTES)).thenReturn(true);
+    when(mockLock1.tryLock(2L, 11L * 60, TimeUnit.SECONDS)).thenReturn(true);
+    when(mockLock2.tryLock(2L, 11L * 60, TimeUnit.SECONDS)).thenReturn(true);
 
     boolean acquired = seatLockService.acquireLocks(seatIds);
 
     assertTrue(acquired);
-    verify(mockLock1).tryLock(1, 11, TimeUnit.MINUTES);
-    verify(mockLock2).tryLock(1, 11, TimeUnit.MINUTES);
+    verify(mockLock1).tryLock(2L, 11L * 60, TimeUnit.SECONDS);
+    verify(mockLock2).tryLock(2L, 11L * 60, TimeUnit.SECONDS);
   }
 
   @Test
@@ -59,16 +59,16 @@ class SeatLockServiceTests {
     when(redissonClient.getLock("lock:seat:102")).thenReturn(mockLock2);
 
     // Lock 1 acquired, Lock 2 fails
-    when(mockLock1.tryLock(1, 11, TimeUnit.MINUTES)).thenReturn(true);
-    when(mockLock2.tryLock(1, 11, TimeUnit.MINUTES)).thenReturn(false);
+    when(mockLock1.tryLock(2L, 11L * 60, TimeUnit.SECONDS)).thenReturn(true);
+    when(mockLock2.tryLock(2L, 11L * 60, TimeUnit.SECONDS)).thenReturn(false);
 
     when(mockLock1.isHeldByCurrentThread()).thenReturn(true);
 
     boolean acquired = seatLockService.acquireLocks(seatIds);
 
     assertFalse(acquired);
-    verify(mockLock1).tryLock(1, 11, TimeUnit.MINUTES);
-    verify(mockLock2).tryLock(1, 11, TimeUnit.MINUTES);
+    verify(mockLock1).tryLock(2L, 11L * 60, TimeUnit.SECONDS);
+    verify(mockLock2).tryLock(2L, 11L * 60, TimeUnit.SECONDS);
     // Verify rollback (unlocking lock 1)
     verify(mockLock1).unlock();
     verify(mockLock2, times(0)).unlock();

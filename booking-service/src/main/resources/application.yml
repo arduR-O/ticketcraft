@@ -12,7 +12,7 @@ spring:
     username: postgres
     password: postgres
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 100
       minimum-idle: 10
       connection-timeout: 20000
   jpa:
@@ -59,3 +59,12 @@ booking:
   lock-wait-seconds: 2
   cart-expiry-minutes: 10
   max-seats-per-booking: 6
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health, info
+  metrics:
+    tags:
+      application: ${spring.application.name}

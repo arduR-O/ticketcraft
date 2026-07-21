@@ -218,7 +218,6 @@ export function CheckoutModal({ isOpen, onClose, eventId, selectedSeats, totalPr
               
               <button
                 onClick={() => {
-                  onClose();
                   router.push('/');
                 }}
                 className="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors w-full"

@@ -19,10 +19,10 @@ import reactor.core.publisher.Mono;
 /**
  * Core service for the virtual waiting room.
  * 
- * What: Manages Redis ZSets (Sorted Sets) for waitlists and active sessions, 
+ * Manages Redis ZSets (Sorted Sets) for waitlists and active sessions, 
  * issues JWT pass tokens, and executes Lua scripts for atomic queue promotions.
  * 
- * Why: High-demand ticketing requires strict fairness and rate limiting to protect
+ * High-demand ticketing requires strict fairness and rate limiting to protect
  * downstream services (Catalog, Booking). Redis ZSets provide O(log(N)) ranking,
  * ensuring users are processed in exactly the order they joined. Lua scripting
  * guarantees atomicity during the complex promotion and eviction sweeps.
@@ -69,9 +69,9 @@ public class QueueService {
   /**
    * Generates a signed JWT for users who have been promoted to active.
    * 
-   * What: Builds a short-lived (5 min) JWT containing the user ID and event ID.
+   * Builds a short-lived (5 min) JWT containing the user ID and event ID.
    * 
-   * Why: Prevents users from forging their way past the Gateway. The Gateway will
+   * Prevents users from forging their way past the Gateway. The Gateway will
    * cryptographically verify this token's signature before allowing the user to hit
    * the downstream Booking or Catalog endpoints.
    * 
@@ -93,10 +93,10 @@ public class QueueService {
   /**
    * Adds a user to the waitlist for a specific event.
    * 
-   * What: Adds the event to the `active_event_queues` set (if not already present),
+   * Adds the event to the `active_event_queues` set (if not already present),
    * and pushes the user into the waitlist ZSet with the current timestamp as their score.
    * 
-   * Why: Storing the timestamp as the score ensures First-In-First-Out (FIFO) ordering
+   * Storing the timestamp as the score ensures First-In-First-Out (FIFO) ordering
    * when we rank the set later. Tracking `active_event_queues` allows the background
    * scheduler to know exactly which events need promotion sweeps without scanning all keys.
    * 
@@ -154,10 +154,10 @@ public class QueueService {
   /**
    * Attempts to issue a queue pass immediately without making the user wait.
    * 
-   * What: Checks if the waitlist is empty and the active sessions are below the maximum.
+   * Checks if the waitlist is empty and the active sessions are below the maximum.
    * If both are true, the user is directly inserted into the active sessions and receives a pass.
    * 
-   * Why: Prevents the overhead of SSE connections for events that have no active queue.
+   * Prevents the overhead of SSE connections for events that have no active queue.
    */
   public Mono<String> attemptFastTrack(String eventId, String userId) {
     String waitlistKey = getWaitlistKey(eventId);
@@ -201,12 +201,12 @@ public class QueueService {
   /**
    * Periodically promotes users from the waitlist to active sessions.
    * 
-   * What: Executes the `promote_users.lua` script which atomically evicts dead sessions
+   * Executes the `promote_users.lua` script which atomically evicts dead sessions
    * (missing heartbeats) and moves the top waitlisted users to the active set until it
    * reaches `maxActiveSessions`. Cleans up the event from `active_event_queues` if both
    * queues are completely empty.
    * 
-   * Why: Using a Lua script prevents race conditions if multiple instances of QueueService
+   * Using a Lua script prevents race conditions if multiple instances of QueueService
    * attempt to promote users simultaneously. It guarantees that exactly the right number
    * of users are promoted without exceeding the max active threshold, which protects the
    * database from sudden traffic spikes.

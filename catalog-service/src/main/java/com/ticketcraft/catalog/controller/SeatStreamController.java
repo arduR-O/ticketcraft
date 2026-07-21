@@ -17,9 +17,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 /**
  * Controller for managing Server-Sent Events (SSE) connections for real-time seat map updates.
  * 
- * What: Manages long-lived HTTP connections, maintaining a map of connected clients per eventId.
+ * Manages long-lived HTTP connections, maintaining a map of connected clients per eventId.
  * 
- * Why: We use SSE instead of WebSockets because seat status updates are strictly one-way (server to client).
+ * We use SSE instead of WebSockets because seat status updates are strictly one-way (server to client).
  * SSE is natively supported by HTTP/1.1, simpler to scale through load balancers, and has built-in
  * reconnection logic in the browser's EventSource API.
  */
@@ -33,9 +33,9 @@ public class SeatStreamController {
   /**
    * Subscribes a client to the seat update stream for a specific event.
    * 
-   * What: Creates an SseEmitter, stores it in a thread-safe map, and sends a handshake event.
+   * Creates an SseEmitter, stores it in a thread-safe map, and sends a handshake event.
    * 
-   * Why: The handshake ensures the connection is fully established and prevents some reverse
+   * The handshake ensures the connection is fully established and prevents some reverse
    * proxies (like NGINX) from dropping idle connections immediately. We keep a 30-minute timeout
    * because typical user sessions in ticket buying last this long.
    * 
@@ -76,10 +76,10 @@ public class SeatStreamController {
   /**
    * Broadcasts a seat status update to all connected clients for a given event.
    * 
-   * What: Iterates through the list of emitters for the eventId and sends the payload.
+   * Iterates through the list of emitters for the eventId and sends the payload.
    * Cleans up any emitters that throw IOException (e.g. client closed the tab).
    * 
-   * Why: This method is called by the RedisMessageSubscriber when a Pub/Sub message is received.
+   * This method is called by the RedisMessageSubscriber when a Pub/Sub message is received.
    * Using ConcurrentHashMap and CopyOnWriteArrayList ensures we don't encounter
    * ConcurrentModificationExceptions while iterating over and mutating the active connections.
    * 

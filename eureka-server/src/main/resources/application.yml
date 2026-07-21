@@ -18,3 +18,12 @@ eureka:
     # This forces Eureka to instantly evict crashed microservice instances without wait windows.
     enable-self-preservation: false
     eviction-interval-timer-in-ms: 3000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health, info
+  metrics:
+    tags:
+      application: ${spring.application.name}

@@ -11,10 +11,15 @@ public class RateLimiterConfig {
 
   @Bean
   public KeyResolver ipKeyResolver() {
-    return exchange ->
-        Mono.just(
-            Objects.requireNonNull(exchange.getRequest().getRemoteAddress())
-                .getAddress()
-                .getHostAddress());
+    return exchange -> {
+      String forwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+      if (forwardedFor != null && !forwardedFor.isEmpty()) {
+        return Mono.just(forwardedFor.split(",")[0].trim());
+      }
+      return Mono.just(
+          Objects.requireNonNull(exchange.getRequest().getRemoteAddress())
+              .getAddress()
+              .getHostAddress());
+    };
   }
 }

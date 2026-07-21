@@ -89,7 +89,7 @@ export function HomeClient({ initialEvents }: HomeClientProps) {
 
           {events && events.length > 0 && (
             <div className="flex flex-col">
-              {events.map((event) => (
+              {[...events].reverse().map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
             </div>
